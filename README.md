@@ -66,6 +66,7 @@ The core research question is:
 - [Technology Stack](#technology-stack)
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
+- [Model Training Pipeline](#model-training-pipeline)
 - [Demo Mode](#demo-mode)
 - [Real Research Mode](#real-research-mode)
 - [Datasets](#datasets)
@@ -426,6 +427,63 @@ cd backend
 python -m uvicorn app.main:app --port 8008 --reload
 ```
 *API docs available at [http://127.0.0.1:8008/docs](http://127.0.0.1:8008/docs)*
+
+---
+
+## Model Training Pipeline
+
+TrustXAI-Med provides a full diagnostic model training pipeline (`backend/app/training/train_classifier.py`) supporting DenseNet-121, ResNet-50, and EfficientNet-B4.
+
+### 1. Install Training Dependencies (with CUDA GPU support):
+```bash
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+pip install scikit-learn pandas pillow tqdm
+```
+
+### 2. Training Execution Commands:
+
+#### Train DenseNet-121 on CheXpert (Chest X-Ray):
+```bash
+python backend/app/training/train_classifier.py \
+  --dataset chexpert \
+  --data_dir ./data/chexpert \
+  --arch densenet121 \
+  --epochs 15 \
+  --batch_size 32 \
+  --lr 1e-4 \
+  --output_dir ./checkpoints
+```
+
+#### Train EfficientNet-B4 on ISIC (Dermoscopy):
+```bash
+python backend/app/training/train_classifier.py \
+  --dataset isic \
+  --data_dir ./data/isic \
+  --arch efficientnet_b4 \
+  --epochs 20 \
+  --batch_size 16 \
+  --lr 5e-5 \
+  --output_dir ./checkpoints
+```
+
+### 3. Integrated Trustworthy Training Features:
+- **Monte Carlo (MC) Dropout:** Embeds `Dropout(p=0.3)` before the linear head to enable stochastic forward-pass sampling ($T=20$) for epistemic uncertainty $\sigma_{\text{MC}}^2$.
+- **Temperature Scaling (Calibration):** Post-hoc optimization ($z / T$) on validation NLL to minimize Expected Calibration Error (ECE).
+- **Multi-Label Loss:** Binary Cross-Entropy with Logits (`nn.BCEWithLogitsLoss`) with positive-weight balancing for co-occurring pathologies.
+
+### 4. Connect Trained Weights to the Platform:
+Set the environment variable pointing to your `.pth` checkpoint:
+```powershell
+# Windows PowerShell
+$env:MODEL_PATH="C:\path\to\checkpoints\densenet121_chexpert.pth"
+$env:CHEXPERT_ROOT="C:\path\to\data\chexpert"
+```
+```bash
+# Linux / macOS
+export MODEL_PATH=/path/to/checkpoints/densenet121_chexpert.pth
+export CHEXPERT_ROOT=/path/to/data/chexpert
+```
+For complete training details, see the [Model Training Guide](docs/training.md).
 
 ---
 
