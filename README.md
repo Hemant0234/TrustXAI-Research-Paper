@@ -484,7 +484,7 @@ If you use TrustXAI-Med in academic work, please cite:
 ```bibtex
 @software{trustxai_med_2026,
   title  = {TrustXAI-Med: Uncertainty-Aware Hybrid XAI for Medical Image Diagnosis},
-  author = {Doggala, Srinath and Contributors},
+  author = {Hemanth Dhaka, Srinath and Contributors},
   year   = {2026},
   url    = {https://github.com/Hemant0234/TrustXAI-Research-Paper}
 }
