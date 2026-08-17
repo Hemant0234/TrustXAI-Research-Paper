@@ -1,0 +1,14 @@
+{
+  "name": "trustxai-med-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TrustXAI-Med: Uncertainty-Aware Hybrid XAI for Medical Image Diagnosis",
+  "scripts": {
+    "dev": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix frontend",
+    "frontend": "npm run dev --prefix frontend",
+    "backend": "python -m uvicorn backend.app.main:app --port 8008 --reload",
+    "test:backend": "python backend/tests/run_tests.py",
+    "test:pytest": "pytest backend/tests -v"
+  }
+}
