@@ -8,6 +8,10 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue.svg)](https://www.typescriptlang.org/)
 [![Status](https://img.shields.io/badge/Status-Research%20Prototype-amber.svg)](#research-status)
 
+<p align="center">
+  <img src="docs/images/trustxai_dashboard.png" alt="TrustXAI-Med Primary Command Center" width="100%" />
+</p>
+
 > **Can we trust the explanation behind an AI diagnosis?**
 
 **TrustXAI-Med** is a research-grade, full-stack platform for investigating the reliability of Explainable AI (XAI) in medical image diagnosis. Instead of stopping at:
@@ -219,6 +223,10 @@ TrustXAI-Med is designed around five core research gaps (RG1 – RG5):
 - **Integrated Gradients:** Path-integral axiomatic attribution relative to a baseline reference.
 - **Attention Rollout:** Recursive attention flow tracking across Vision Transformer (ViT / Swin) heads.
 
+<p align="center">
+  <img src="docs/images/explanation_lab.png" alt="Multi-Method Explanation Lab with Radar Metrics" width="100%" />
+</p>
+
 ---
 
 ## Explanation Fusion
@@ -241,6 +249,10 @@ Quality Metrics ─┘
 4. Uncertainty-aware dynamic weighting
 5. Spatial agreement and variance/disagreement maps
 
+<p align="center">
+  <img src="docs/images/fusion_lab.png" alt="Explanation Fusion and Pairwise Agreement Matrix" width="100%" />
+</p>
+
 ---
 
 ## Explanation Quality Index (XQI)
@@ -262,6 +274,10 @@ $$XQI = \sum_{d \in D} \tilde{w}_d \cdot S_d$$
 > [!NOTE]
 > XQI is a proposed research framework and metric within this project and is not an established clinical or regulatory standard.
 
+<p align="center">
+  <img src="docs/images/reliability_xqi.png" alt="7-Dimension XQI and Explanation Reliability Gauge" width="100%" />
+</p>
+
 ---
 
 ## Explanation Reliability
@@ -276,6 +292,10 @@ Prediction confidence and explanation reliability are decoupled. The platform cl
 ## The Killer Demo
 
 ### Case TX-2047 — Cardiomegaly
+
+<p align="center">
+  <img src="docs/images/killer_demo_tx2047.png" alt="Killer Demo Case TX-2047 Review Required" width="100%" />
+</p>
 
 | Metric | Traditional XAI Dashboard | TrustXAI-Med |
 | :--- | :--- | :--- |
@@ -318,6 +338,10 @@ The **Robustness Lab** simulates clinical and adversarial image perturbations:
 - Random crop ($80\%$)
 
 Measures SSIM degradation, perturbation stability score, and attribution displacement.
+
+<p align="center">
+  <img src="docs/images/robustness_lab.png" alt="Robustness Lab Perturbation Stress Testing" width="100%" />
+</p>
 
 ---
 
