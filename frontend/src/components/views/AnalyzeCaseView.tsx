@@ -78,6 +78,28 @@ export const AnalyzeCaseView: React.FC<AnalyzeCaseViewProps> = ({
             ))}
           </div>
 
+          {/* Upload Unseen Image for Real Inference */}
+          <label className="cursor-pointer text-xs px-2.5 py-1 rounded-md font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-2xs flex items-center space-x-1.5 transition-all">
+            <span>+ Upload Scan</span>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  try {
+                    const result = await (await import('../../lib/api')).api.uploadImageForInference(file);
+                    // Pass to parent or update state
+                    alert(`Inference completed for ${file.name}: Predicted ${result.prediction.label} (${(result.prediction.probability * 100).toFixed(1)}%) with ${result.uncertainty.level} uncertainty.`);
+                  } catch (err: any) {
+                    alert(err.message || 'Inference failed');
+                  }
+                }
+              }}
+            />
+          </label>
+
           <span className="text-xs px-2.5 py-1 rounded-full font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center space-x-1">
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>Analysis Completed</span>

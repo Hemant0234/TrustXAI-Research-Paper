@@ -50,18 +50,19 @@ export interface XQIDimensions {
   uncertainty_alignment: number;
   weights: Record<string, number>;
   status: string;
-  mathematical_formulation: string;
-  is_research_baseline: boolean;
+  mathematical_formulation?: string;
+  is_research_baseline?: boolean;
 }
 
 export interface ReliabilityAssessment {
   score: number;
   level: 'RELIABLE' | 'CAUTION' | 'REVIEW REQUIRED';
-  trust_verdict: string;
-  evidence_positive: string[];
-  evidence_concerns: string[];
-  should_trust_explanation: boolean;
-  clinical_recommendation: string;
+  trust_verdict?: string;
+  evidence_positive?: string[];
+  evidence_concerns?: string[];
+  should_trust_explanation?: boolean;
+  clinical_recommendation?: string;
+  evidence?: string[];
 }
 
 export interface CaseAnalysis {
@@ -114,85 +115,123 @@ export interface DatasetItem {
   description: string;
 }
 
+export interface DatasetScanResult {
+  dataset_name: string;
+  root_path: string;
+  total_images: number;
+  classes: string[];
+  class_distribution: Record<string, number>;
+  train_count: number;
+  val_count: number;
+  test_count: number;
+  patient_level_split_applied: boolean;
+  unique_patients_detected?: number;
+  corrupted_images: string[];
+  class_imbalance_warning?: string;
+  sample_images: { class: string; filename: string; path: string }[];
+}
+
+export interface TrainingConfigPayload {
+  dataset_path: string;
+  dataset_name: string;
+  architecture: string;
+  epochs: number;
+  batch_size: number;
+  learning_rate: number;
+  weight_decay: number;
+  seed: number;
+  use_patient_split: boolean;
+  output_dir: string;
+}
+
+export interface TrainingStatusResponse {
+  job_id: string;
+  status: 'queued' | 'running' | 'completed' | 'failed';
+  current_epoch: number;
+  total_epochs: number;
+  train_loss?: number;
+  val_loss?: number;
+  train_acc?: number;
+  val_acc?: number;
+  learning_rate: number;
+  device: string;
+  elapsed_seconds: number;
+  history: {
+    epoch: number;
+    train_loss: number;
+    val_loss: number;
+    train_acc: number;
+    val_acc: number;
+    learning_rate: number;
+  }[];
+  error_message?: string;
+  checkpoint_path?: string;
+}
+
 export interface ModelItem {
   id: string;
   name: string;
   architecture: string;
-  domain: string;
-  default_dataset: string;
-  task: string;
-  auc_roc: number;
-  accuracy: number;
-  calibration_ece: number;
+  modality: string;
+  training_dataset: string;
+  auc: number;
+  ece: number;
   parameters: string;
   status: string;
-  layer_hook: string;
+  is_active: boolean;
+  weights_path: string;
 }
 
 export interface ExperimentItem {
   id: string;
-  name: string;
   model: string;
-  dataset: string;
   xai_methods: string[];
   fusion_strategy: string;
-  uncertainty_method: string;
   mean_xqi: number;
-  mean_reliability: number;
-  auc_roc: number;
-  ece_calibration: number;
-  perturbation_stability: number;
-  localization_agreement?: number | null;
-  date_run: string;
+  reliability: number;
+  auc: number;
+  date: string;
   status: string;
-  notes: string;
 }
 
 export interface AblationItem {
-  condition_id: string;
-  name: string;
-  description: string;
-  accuracy: number;
-  auc_roc: number;
-  calibration_ece: number;
+  id: string;
+  condition: string;
   faithfulness: number;
   localization: number;
   stability: number;
   robustness: number;
-  xqi: number;
+  overall_xqi: number;
   reliability: number;
 }
 
 export interface ClinicianStudyCondition {
-  condition_id: string;
-  code: 'A' | 'B' | 'C' | 'D';
+  id: string;
   name: string;
   description: string;
-  features_shown: string[];
+  features_displayed: string[];
+  hypothesized_trust_effect: string;
 }
 
 export interface StudyBenchmarkSummary {
   condition: string;
-  condition_name: string;
+  participant_count: number;
   mean_diagnostic_accuracy: number;
-  mean_clinician_trust: number;
-  mean_decision_time: number;
-  overreliance_on_incorrect_ai: number;
-  clinician_satisfaction: number;
+  mean_decision_latency_sec: number;
+  mean_subjective_trust_score: number;
+  overreliance_rate: number;
 }
 
 export interface ClinicianResponse {
-  participant_id: string;
-  participant_role: string;
   case_id: string;
-  condition_code: string;
-  diagnostic_decision: string;
-  diagnostic_confidence: number;
-  clinician_trust_score: number;
-  decision_time_seconds: number;
-  explanation_utility_rating: number;
-  clinical_feedback?: string;
-  timestamp?: number;
+  participant_id: string;
+  condition: string;
+  diagnosis_decision: string;
+  confidence_rating: number;
+  trust_rating: number;
+  explanation_helpful: boolean;
+  time_to_decision_sec: number;
+  notes?: string;
 }
 
 export interface PerturbationResult {
