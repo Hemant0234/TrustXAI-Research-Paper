@@ -101,3 +101,5 @@ ABLATION_STUDY_DATA: List[AblationCondition] = [
         reliability=92.1
     )
 ]
+
+ABLATION_MATRIX = ABLATION_STUDY_DATA

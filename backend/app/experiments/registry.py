@@ -147,3 +147,5 @@ BENCHMARK_EXPERIMENTS: List[ExperimentEntry] = [
         notes="Multi-parametric MRI evaluation with 3D axial reconstruction."
     )
 ]
+
+EXPERIMENT_REGISTRY = BENCHMARK_EXPERIMENTS

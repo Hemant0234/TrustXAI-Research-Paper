@@ -152,3 +152,16 @@ STUDY_BENCHMARK_RESULTS: List[StudyBenchmarkSummary] = [
         clinician_satisfaction=94.1
     )
 ]
+
+CLINICIAN_STUDY_CONDITIONS = STUDY_CONDITIONS
+STUDY_BENCHMARKS = STUDY_BENCHMARK_RESULTS
+
+class ClinicianResponseLogger:
+    @staticmethod
+    def get_all_responses() -> List[ClinicianResponse]:
+        return MOCK_CLINICAL_RESPONSES
+
+    @staticmethod
+    def log_response(response: ClinicianResponse):
+        MOCK_CLINICAL_RESPONSES.append(response)
+        return {"status": "success", "recorded_id": response.participant_id}

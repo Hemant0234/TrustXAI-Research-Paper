@@ -28,7 +28,7 @@ class ResearchReportGenerator:
 | Metric | Measured Value | Interpretation |
 | :--- | :--- | :--- |
 | **Predicted Label** | **{case.prediction.label}** | Primary model diagnosis |
-| **Prediction Confidence** | **{case.prediction.probability * 100:.1f}%** | Softmax class probability $P(Y=\hat{y} \mid X)$ |
+| **Prediction Confidence** | **{case.prediction.probability * 100:.1f}%** | Softmax class probability $P(Y=\hat{{y}} \mid X)$ |
 | **Predictive Uncertainty** | **{case.uncertainty.level.upper()}** (Score: {case.uncertainty.score:.3f}) | Composite entropy & margin dispersion |
 | **Normalized Entropy** | {case.uncertainty.entropy:.3f} | Shannon information entropy across candidate classes |
 | **Calibration Error (ECE)**| {case.uncertainty.calibration_error:.4f} | Expected difference between confidence and empirical accuracy |

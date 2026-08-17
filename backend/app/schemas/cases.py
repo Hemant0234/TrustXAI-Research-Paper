@@ -66,6 +66,21 @@ class ReliabilityAssessment(BaseModel):
     should_trust_explanation: bool
     clinical_recommendation: str
 
+class CaseSummary(BaseModel):
+    case_id: str
+    modality: str
+    dataset: str
+    model_name: str
+    predicted_label: str
+    confidence: float
+    uncertainty_level: str
+    uncertainty_score: float
+    xqi_score: float
+    reliability_score: float
+    reliability_level: str
+    overall_agreement: float
+    is_demo: bool = True
+
 class CaseAnalysisResponse(BaseModel):
     case_id: str
     modality: str
