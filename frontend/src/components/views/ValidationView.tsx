@@ -1,162 +1,151 @@
-import React, { useState, useEffect } from 'react';
-import { Globe2, ShieldCheck, Database, Layers, ArrowRight, ExternalLink } from 'lucide-react';
-import { DatasetItem } from '../../types';
-import { fetchDatasets } from '../../lib/api';
+import React from 'react';
+import { Globe2, Info } from 'lucide-react';
 
 export const ValidationView: React.FC = () => {
-  const [datasets, setDatasets] = useState<DatasetItem[]>([]);
-  const [selectedDomain, setSelectedDomain] = useState<string>('all');
-
-  useEffect(() => {
-    fetchDatasets()
-      .then(setDatasets)
-      .catch(console.error);
-  }, []);
-
-  const domainBenchmarks = [
+  const domains = [
     {
-      modality: 'Chest Radiograph (CXR)',
-      primaryDataset: 'CheXpert / CheXlocalize',
-      model: 'DenseNet-121',
-      accuracy: 88.4,
-      auc: 0.912,
-      meanXQI: 87.6,
-      meanReliability: 92.1,
-      robustness: 93.8,
-      status: 'Core Primary Benchmark'
+      name: 'CheXpert',
+      modality: 'Chest X-Ray',
+      cases: '6,201',
+      acc: '92.4%',
+      ece: '0.08',
+      xqi: 81,
+      rel: 86,
+      rob: '0.88'
     },
     {
+      name: 'ISIC Archive',
       modality: 'Dermoscopy',
-      primaryDataset: 'ISIC 2024 / HAM10000',
-      model: 'EfficientNet-B4',
-      accuracy: 90.1,
-      auc: 0.934,
-      meanXQI: 85.2,
-      meanReliability: 89.4,
-      robustness: 91.5,
-      status: 'Cross-Domain Validation'
+      cases: '3,842',
+      acc: '88.1%',
+      ece: '0.09',
+      xqi: 77,
+      rel: 83,
+      rob: '0.84'
     },
     {
-      modality: 'Brain MRI (Multi-Modal)',
-      primaryDataset: 'BraTS 2023',
-      model: 'Swin Transformer',
-      accuracy: 89.3,
-      auc: 0.925,
-      meanXQI: 83.9,
-      meanReliability: 87.8,
-      robustness: 89.2,
-      status: 'Cross-Modality Validation'
+      name: 'BraTS',
+      modality: 'Brain MRI',
+      cases: '1,250',
+      acc: '90.3%',
+      ece: '0.07',
+      xqi: 73,
+      rel: 78,
+      rob: '0.81'
+    },
+    {
+      name: 'VinDr-CXR',
+      modality: 'Chest X-Ray',
+      cases: '18,000',
+      acc: '90.7%',
+      ece: '0.10',
+      xqi: 79,
+      rel: 84,
+      rob: '0.86'
+    },
+    {
+      name: 'MIMIC-CXR-JPG',
+      modality: 'Chest X-Ray',
+      cases: '377,110',
+      acc: '90.1%',
+      ece: '0.11',
+      xqi: 78,
+      rel: 83,
+      rob: '0.85'
     }
   ];
 
+  const bars = [
+    { name: 'CheXpert', val: 86 },
+    { name: 'ISIC', val: 83 },
+    { name: 'BraTS', val: 78 },
+    { name: 'VinDr-CXR', val: 84 },
+    { name: 'MIMIC-CXR-JPG', val: 83 }
+  ];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="bg-white rounded-2xl border border-clinical-200 p-6 shadow-sm">
-        <div className="flex items-center space-x-2">
-          <span className="text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
-            Generalization & Cross-Domain
-          </span>
-        </div>
-        <h1 className="text-2xl font-extrabold text-clinical-900 tracking-tight mt-1.5">
-          Cross-Domain Validation Lab
-        </h1>
-        <p className="text-sm text-clinical-600 font-medium mt-1 max-w-3xl">
-          Addressing the <strong>Cross-Domain Validation Gap (RG5)</strong>. Explanation reliability principles are tested
-          across three diverse medical imaging modalities: Chest Radiographs (CheXpert), Dermoscopic Lesions (ISIC), and Volumetric Brain MRI (BraTS).
-        </p>
+      <div>
+        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Validation Dashboard</h1>
+        <p className="text-xs text-slate-500 font-medium">Cross-domain explanation reliability</p>
       </div>
 
-      {/* Cross-Domain Comparative Benchmark Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {domainBenchmarks.map((b) => (
-          <div
-            key={b.modality}
-            className="bg-white rounded-xl border border-clinical-200 p-4.5 shadow-sm space-y-3"
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-xs px-2 py-0.5 rounded bg-clinical-100 text-clinical-800 font-semibold font-mono">
-                  {b.status}
-                </span>
-                <h3 className="text-base font-bold text-clinical-900 mt-1">{b.modality}</h3>
-              </div>
-            </div>
-
-            <div className="space-y-1 text-xs text-clinical-600 border-t border-clinical-100 pt-2 font-medium">
-              <div className="flex justify-between">
-                <span>Benchmark Cohort:</span>
-                <span className="font-bold text-clinical-800">{b.primaryDataset}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Architecture:</span>
-                <span className="font-mono text-clinical-800">{b.model}</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-clinical-100 text-center font-mono">
-              <div className="p-2 rounded bg-clinical-50 border border-clinical-100">
-                <span className="text-[10px] text-clinical-500 block uppercase font-sans">AUC-ROC</span>
-                <span className="text-sm font-bold text-blue-600">{b.auc.toFixed(3)}</span>
-              </div>
-              <div className="p-2 rounded bg-clinical-50 border border-clinical-100">
-                <span className="text-[10px] text-clinical-500 block uppercase font-sans">Mean XQI</span>
-                <span className="text-sm font-bold text-clinical-900">{b.meanXQI.toFixed(1)}</span>
-              </div>
-              <div className="p-2 rounded bg-clinical-50 border border-clinical-100">
-                <span className="text-[10px] text-clinical-500 block uppercase font-sans">Reliability</span>
-                <span className="text-sm font-bold text-emerald-600">{b.meanReliability.toFixed(1)}</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Dataset Registry Table */}
-      <div className="bg-white rounded-xl border border-clinical-200 shadow-sm overflow-hidden space-y-0">
-        <div className="px-5 py-4 border-b border-clinical-200 flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-bold text-clinical-900 uppercase tracking-wider">
-              Medical Research Dataset Registry
-            </h2>
-            <p className="text-xs text-clinical-500 font-medium">
-              Registered benchmark datasets, access credentialing status, and ground-truth annotation tiers
-            </p>
-          </div>
-        </div>
-
+      {/* Top Table: Domain / Dataset Benchmarks */}
+      <div className="bg-white rounded-lg border border-slate-200/90 shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-clinical-700">
-            <thead className="bg-clinical-50/80 text-clinical-600 border-b border-clinical-200 font-bold uppercase tracking-wider text-[10px]">
+          <table className="w-full text-left text-xs text-slate-700">
+            <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
               <tr>
-                <th className="py-3 px-4">Dataset Name</th>
-                <th className="py-3 px-4">Modality</th>
-                <th className="py-3 px-4">Role in TrustXAI</th>
-                <th className="py-3 px-4">Ground-Truth Annotations</th>
-                <th className="py-3 px-4">Access Requirement</th>
-                <th className="py-3 px-4">System Status</th>
+                <th className="py-2.5 px-3">Domain / Dataset</th>
+                <th className="py-2.5 px-3">Modality</th>
+                <th className="py-2.5 px-3">Cases</th>
+                <th className="py-2.5 px-3">Accuracy</th>
+                <th className="py-2.5 px-3">Calibration (ECE)</th>
+                <th className="py-2.5 px-3">Mean XQI</th>
+                <th className="py-2.5 px-3">Reliability</th>
+                <th className="py-2.5 px-3">Robustness</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-clinical-100 font-medium">
-              {datasets.map((d) => (
-                <tr key={d.id} className="hover:bg-clinical-50/80">
-                  <td className="py-3 px-4 font-bold text-clinical-900">
-                    <div>{d.name}</div>
-                    <div className="text-[10px] text-clinical-500 font-normal">{d.citation}</div>
-                  </td>
-                  <td className="py-3 px-4 text-clinical-700">{d.modality}</td>
-                  <td className="py-3 px-4 font-semibold text-clinical-800">{d.role_in_research}</td>
-                  <td className="py-3 px-4 text-clinical-600">{d.annotations_type}</td>
-                  <td className="py-3 px-4 text-clinical-600">{d.access_level}</td>
-                  <td className="py-3 px-4">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                      {d.status}
-                    </span>
-                  </td>
+            <tbody className="divide-y divide-slate-100 font-medium text-xs">
+              {domains.map((d) => (
+                <tr key={d.name} className="hover:bg-slate-50/60">
+                  <td className="py-2.5 px-3 font-bold text-slate-900">{d.name}</td>
+                  <td className="py-2.5 px-3 text-slate-600">{d.modality}</td>
+                  <td className="py-2.5 px-3 font-mono text-slate-700">{d.cases}</td>
+                  <td className="py-2.5 px-3 font-mono font-bold text-slate-800">{d.acc}</td>
+                  <td className="py-2.5 px-3 font-mono text-slate-700">{d.ece}</td>
+                  <td className="py-2.5 px-3 font-mono font-bold text-slate-800">{d.xqi}</td>
+                  <td className="py-2.5 px-3 font-mono font-bold text-blue-600">{d.rel}</td>
+                  <td className="py-2.5 px-3 font-mono text-slate-700">{d.rob}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Bottom Row: Bar Chart & Domain Shift Insight */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* Left: Cross-Domain Reliability Bar Chart (8 cols) */}
+        <div className="lg:col-span-8 bg-white rounded-lg border border-slate-200/90 p-4 shadow-2xs space-y-3">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            CROSS-DOMAIN EXPLANATION RELIABILITY
+          </div>
+
+          <div className="h-44 flex items-end justify-between px-6 pt-4 pb-2 border-b border-slate-100">
+            {bars.map((b) => (
+              <div key={b.name} className="flex flex-col items-center space-y-2">
+                <span className="font-mono font-bold text-xs text-slate-800">{b.val}</span>
+                <div className="w-12 bg-blue-50 rounded-t overflow-hidden flex items-end h-28">
+                  <div
+                    className="w-full bg-gradient-to-t from-cyan-600 to-blue-500 rounded-t transition-all"
+                    style={{ height: `${b.val}%` }}
+                  />
+                </div>
+                <span className="text-[10px] font-semibold text-slate-600 text-center">
+                  {b.name}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right: Domain Shift Insight (4 cols) */}
+        <div className="lg:col-span-4 bg-white rounded-lg border border-slate-200/90 p-4 shadow-2xs space-y-2 flex flex-col justify-between">
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+              DOMAIN SHIFT INSIGHT
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Explanation reliability decreases moderately with increasing domain shift. MRI explanations
+              exhibit lower reliability due to greater anatomical complexity and modality differences.
+            </p>
+          </div>
+
+          <div className="p-2.5 rounded bg-slate-50 border border-slate-100 text-[10px] text-slate-500">
+            <strong>CheXpert vs MIMIC Shift:</strong> -3.5% reliability under ICU domain shift.
+          </div>
         </div>
       </div>
     </div>

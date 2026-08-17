@@ -1,299 +1,255 @@
-import React, { useState, useEffect } from 'react';
-import { Stethoscope, UserCheck, CheckCircle2, Clock, ThumbsUp, Send, Sparkles, ShieldCheck } from 'lucide-react';
-import { ClinicianStudyCondition, StudyBenchmarkSummary, ClinicianResponse, CaseAnalysis } from '../../types';
-import { fetchClinicalConditions, fetchClinicalBenchmarks, fetchClinicalResponses, submitClinicalResponse } from '../../lib/api';
+import React from 'react';
+import { Download, Stethoscope, CheckCircle, Clock, Star } from 'lucide-react';
 
-interface ClinicalStudyViewProps {
-  currentCase: CaseAnalysis;
-}
+export const ClinicalStudyView: React.FC = () => {
+  const trustBars = [
+    { arm: 'A', val: 2.41, height: '48%' },
+    { arm: 'B', val: 3.04, height: '60%' },
+    { arm: 'C', val: 3.62, height: '72%' },
+    { arm: 'D', val: 4.21, height: '84%' }
+  ];
 
-export const ClinicalStudyView: React.FC<ClinicalStudyViewProps> = ({ currentCase }) => {
-  const [conditions, setConditions] = useState<ClinicianStudyCondition[]>([]);
-  const [benchmarks, setBenchmarks] = useState<StudyBenchmarkSummary[]>([]);
-  const [responses, setResponses] = useState<ClinicianResponse[]>([]);
-  const [activeCondition, setActiveCondition] = useState<string>('D');
-
-  // Response Form state
-  const [participantId, setParticipantId] = useState<string>('RAD-READER-05');
-  const [role, setRole] = useState<string>('Radiologist');
-  const [decision, setDecision] = useState<string>(currentCase.prediction.label);
-  const [confidence, setConfidence] = useState<number>(90);
-  const [trustScore, setTrustScore] = useState<number>(85);
-  const [utilityRating, setUtilityRating] = useState<number>(5);
-  const [feedback, setFeedback] = useState<string>('');
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [submitSuccess, setSubmitSuccess] = useState<boolean>(false);
-
-  useEffect(() => {
-    fetchClinicalConditions().then(setConditions).catch(console.error);
-    fetchClinicalBenchmarks().then(setBenchmarks).catch(console.error);
-    fetchClinicalResponses().then(setResponses).catch(console.error);
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      await submitClinicalResponse({
-        participant_id: participantId,
-        participant_role: role,
-        case_id: currentCase.case_id,
-        condition_code: activeCondition,
-        diagnostic_decision: decision,
-        diagnostic_confidence: confidence,
-        clinician_trust_score: trustScore,
-        decision_time_seconds: 15.4,
-        explanation_utility_rating: utilityRating,
-        clinical_feedback: feedback
-      });
-      setSubmitSuccess(true);
-      const updated = await fetchClinicalResponses();
-      setResponses(updated);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsSubmitting(false);
+  const recentResponses = [
+    {
+      pId: 'P-07',
+      caseId: 'TX-2048',
+      decision: 'Correct',
+      confidence: 5,
+      trust: 5,
+      time: 38
+    },
+    {
+      pId: 'P-03',
+      caseId: 'TX-2047',
+      decision: 'Correct',
+      confidence: 4,
+      trust: 4,
+      time: 42
+    },
+    {
+      pId: 'P-11',
+      caseId: 'TX-2046',
+      decision: 'Correct',
+      confidence: 4,
+      trust: 4,
+      time: 35
     }
-  };
+  ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="bg-white rounded-2xl border border-clinical-200 p-6 shadow-sm">
-        <div className="flex items-center space-x-2">
-          <span className="text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
-            Clinical Decision Support Evaluation
-          </span>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Clinical Study</h1>
+          <p className="text-xs text-slate-500 font-medium">
+            Human evaluation of explanation usefulness
+          </p>
         </div>
-        <h1 className="text-2xl font-extrabold text-clinical-900 tracking-tight mt-1.5">
-          Clinician Trust & Reader Study Protocol
-        </h1>
-        <p className="text-sm text-clinical-600 font-medium mt-1 max-w-3xl">
-          Simulating the 4-Condition Reader Protocol (Conditions A, B, C, D) to measure clinician diagnostic accuracy,
-          decision time, subjective trust, and prevention of AI overreliance.
-        </p>
+        <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          Demo Mode
+        </span>
       </div>
 
-      {/* 4 Study Conditions Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        {conditions.map((cond) => {
-          const isSelected = activeCondition === cond.code;
-          return (
-            <div
-              key={cond.condition_id}
-              onClick={() => {
-                setActiveCondition(cond.code);
-                setSubmitSuccess(false);
-              }}
-              className={`p-3.5 rounded-xl border transition-all cursor-pointer space-y-2 ${
-                isSelected
-                  ? 'bg-blue-50/70 border-blue-600 ring-2 ring-blue-100 shadow-sm'
-                  : 'bg-white border-clinical-200 hover:border-clinical-300'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span
-                  className={`text-xs px-2 py-0.5 rounded font-bold font-mono ${
-                    isSelected ? 'bg-blue-600 text-white' : 'bg-clinical-100 text-clinical-800'
-                  }`}
-                >
-                  Condition {cond.code}
-                </span>
-                {cond.code === 'D' && (
-                  <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-emerald-100 text-emerald-800">
-                    Full TrustXAI
-                  </span>
-                )}
-              </div>
-              <h3 className="text-xs font-bold text-clinical-900 leading-tight">
-                {cond.name}
-              </h3>
-              <p className="text-[11px] text-clinical-600 leading-snug">
-                {cond.description}
-              </p>
+      {/* Top Section: 5 KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="bg-white rounded-lg border border-slate-200/90 p-3 shadow-2xs">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            Participants
+          </div>
+          <div className="text-2xl font-black font-mono text-slate-900 mt-1">12</div>
+        </div>
+
+        <div className="bg-white rounded-lg border border-slate-200/90 p-3 shadow-2xs">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            Cases Evaluated
+          </div>
+          <div className="text-2xl font-black font-mono text-slate-900 mt-1">240</div>
+        </div>
+
+        <div className="bg-white rounded-lg border border-slate-200/90 p-3 shadow-2xs">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            Avg. Trust (D)
+          </div>
+          <div className="text-2xl font-black font-mono text-slate-900 mt-1">
+            4.21 <span className="text-xs font-normal text-slate-400">/5</span>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg border border-slate-200/90 p-3 shadow-2xs">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            Accuracy (D)
+          </div>
+          <div className="text-2xl font-black font-mono text-slate-900 mt-1">87.5%</div>
+        </div>
+
+        <div className="bg-white rounded-lg border border-slate-200/90 p-3 shadow-2xs flex items-center justify-between">
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              Study Progress
             </div>
-          );
-        })}
+            <div className="text-xl font-black font-mono text-slate-900 mt-1">68%</div>
+          </div>
+          {/* Circular progress */}
+          <div className="w-10 h-10 relative shrink-0">
+            <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
+              <circle cx="18" cy="18" r="14" fill="none" stroke="#e2e8f0" strokeWidth="3.5" />
+              <circle
+                cx="18"
+                cy="18"
+                r="14"
+                fill="none"
+                stroke="#10b981"
+                strokeWidth="3.5"
+                strokeDasharray="68 100"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
+        </div>
       </div>
 
-      {/* Interactive Reader Response Capture Form & Benchmark Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left: Study Simulation Form (5 cols) */}
-        <div className="lg:col-span-5 bg-white rounded-xl border border-clinical-200 p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-clinical-100 pb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-clinical-800">
-              Reader Response Capture Form
-            </span>
-            <span className="text-xs font-mono font-bold text-blue-600">
-              Condition {activeCondition} • {currentCase.case_id}
-            </span>
+      {/* Middle Row: Study Arms, Trust Rating Chart, and Preference Pie Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* Left: Study Arms (4 cols) */}
+        <div className="lg:col-span-4 bg-white rounded-lg border border-slate-200/90 p-4 shadow-2xs space-y-3">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            STUDY ARMS
           </div>
 
-          {submitSuccess ? (
-            <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200 text-center space-y-2">
-              <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
-              <h4 className="text-xs font-bold text-emerald-900">
-                Clinician Response Recorded!
-              </h4>
-              <p className="text-[11px] text-emerald-700">
-                Thank you for participating in the TrustXAI-Med decision support study.
-              </p>
-              <button
-                onClick={() => setSubmitSuccess(false)}
-                className="mt-2 px-3 py-1 bg-emerald-600 text-white text-xs font-semibold rounded-lg"
-              >
-                Record Another Response
-              </button>
+          <div className="space-y-2 text-xs">
+            <div className="p-2 rounded bg-slate-50 border border-slate-200 flex items-start space-x-2">
+              <span className="font-bold text-slate-800 font-mono">A:</span>
+              <span className="text-slate-600 font-medium">Prediction Only</span>
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="font-semibold text-clinical-700 block mb-1">Participant ID</label>
-                  <input
-                    type="text"
-                    value={participantId}
-                    onChange={(e) => setParticipantId(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded bg-clinical-50 border border-clinical-200 font-mono text-clinical-900"
+            <div className="p-2 rounded bg-slate-50 border border-slate-200 flex items-start space-x-2">
+              <span className="font-bold text-slate-800 font-mono">B:</span>
+              <span className="text-slate-600 font-medium">Prediction + Grad-CAM</span>
+            </div>
+            <div className="p-2 rounded bg-slate-50 border border-slate-200 flex items-start space-x-2">
+              <span className="font-bold text-slate-800 font-mono">C:</span>
+              <span className="text-slate-600 font-medium">Prediction + Hybrid XAI</span>
+            </div>
+            <div className="p-2 rounded bg-blue-50/70 border border-blue-200 flex items-start space-x-2">
+              <span className="font-bold text-blue-800 font-mono">D:</span>
+              <span className="text-blue-900 font-semibold">
+                Prediction + Hybrid XAI + XQI + Uncertainty
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Center: Trust Rating (1-5) Bar Chart (4 cols) */}
+        <div className="lg:col-span-4 bg-white rounded-lg border border-slate-200/90 p-4 shadow-2xs space-y-3">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            TRUST RATING (1–5)
+          </div>
+
+          <div className="h-44 flex items-end justify-around px-2 pt-4 pb-2 border-b border-slate-100">
+            {trustBars.map((b) => (
+              <div key={b.arm} className="flex flex-col items-center space-y-2">
+                <span className="font-mono font-bold text-xs text-slate-800">{b.val}</span>
+                <div className="w-10 bg-slate-100 rounded-t overflow-hidden flex items-end h-28">
+                  <div
+                    className={`w-full rounded-t transition-all ${
+                      b.arm === 'D' ? 'bg-blue-600' : 'bg-blue-400/70'
+                    }`}
+                    style={{ height: b.height }}
                   />
                 </div>
-                <div>
-                  <label className="font-semibold text-clinical-700 block mb-1">Clinical Role</label>
-                  <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded bg-clinical-50 border border-clinical-200 font-medium text-clinical-900"
-                  >
-                    <option value="Radiologist">Radiologist</option>
-                    <option value="Attending Physician">Attending Physician</option>
-                    <option value="Resident">Resident</option>
-                    <option value="Medical AI Researcher">Medical AI Researcher</option>
-                  </select>
-                </div>
+                <span className="text-xs font-bold text-slate-700 font-mono">{b.arm}</span>
               </div>
-
-              <div>
-                <label className="font-semibold text-clinical-700 block mb-1">Diagnostic Decision</label>
-                <input
-                  type="text"
-                  value={decision}
-                  onChange={(e) => setDecision(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded bg-clinical-50 border border-clinical-200 font-medium text-clinical-900"
-                />
-              </div>
-
-              <div>
-                <div className="flex justify-between font-semibold text-clinical-700 mb-1">
-                  <span>Diagnostic Confidence</span>
-                  <span className="font-mono">{confidence}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="100"
-                  value={confidence}
-                  onChange={(e) => setConfidence(parseInt(e.target.value))}
-                  className="w-full h-1.5 bg-clinical-200 rounded appearance-none accent-blue-600"
-                />
-              </div>
-
-              <div>
-                <div className="flex justify-between font-semibold text-clinical-700 mb-1">
-                  <span>Subjective Trust in AI Output</span>
-                  <span className="font-mono">{trustScore}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="100"
-                  value={trustScore}
-                  onChange={(e) => setTrustScore(parseInt(e.target.value))}
-                  className="w-full h-1.5 bg-clinical-200 rounded appearance-none accent-blue-600"
-                />
-              </div>
-
-              <div>
-                <label className="font-semibold text-clinical-700 block mb-1">Clinical Reader Feedback</label>
-                <textarea
-                  rows={2}
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
-                  placeholder="Notes on explainer concordance, artifacts, or uncertainty guidance..."
-                  className="w-full px-2.5 py-1.5 rounded bg-clinical-50 border border-clinical-200 text-clinical-900 text-xs"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg flex items-center justify-center space-x-1.5 transition-colors disabled:opacity-50"
-              >
-                <Send className="w-3.5 h-3.5" />
-                <span>Submit Response</span>
-              </button>
-            </form>
-          )}
+            ))}
+          </div>
         </div>
 
-        {/* Right: Study Benchmark Results Matrix (7 cols) */}
-        <div className="lg:col-span-7 bg-white rounded-xl border border-clinical-200 p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-clinical-100 pb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-clinical-800">
-              Aggregated Reader Study Benchmarks
-            </span>
-            <span className="text-[11px] text-clinical-500 font-mono">
-              N=42 Certified Radiologist Readers
-            </span>
+        {/* Right: Preference Pie Chart (4 cols) */}
+        <div className="lg:col-span-4 bg-white rounded-lg border border-slate-200/90 p-4 shadow-2xs space-y-3">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            PREFERENCE (MOST HELPFUL)
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-clinical-700">
-              <thead className="bg-clinical-50 text-clinical-600 border-b border-clinical-200 font-bold uppercase tracking-wider text-[10px]">
-                <tr>
-                  <th className="py-2.5 px-3">Condition</th>
-                  <th className="py-2.5 px-3">Diagnostic Accuracy</th>
-                  <th className="py-2.5 px-3">Clinician Trust</th>
-                  <th className="py-2.5 px-3">Decision Time</th>
-                  <th className="py-2.5 px-3 text-rose-700">Overreliance on Bad AI</th>
+          <div className="flex items-center justify-center space-x-4 h-44">
+            {/* SVG Donut / Pie */}
+            <div className="w-24 h-24 relative shrink-0">
+              <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
+                <circle cx="18" cy="18" r="12" fill="none" stroke="#e2e8f0" strokeWidth="10" />
+                <circle cx="18" cy="18" r="12" fill="none" stroke="#3b82f6" strokeWidth="10" strokeDasharray="48 52" strokeDashoffset="0" />
+                <circle cx="18" cy="18" r="12" fill="none" stroke="#06b6d4" strokeWidth="10" strokeDasharray="31 69" strokeDashoffset="-48" />
+                <circle cx="18" cy="18" r="12" fill="none" stroke="#10b981" strokeWidth="10" strokeDasharray="17 83" strokeDashoffset="-79" />
+                <circle cx="18" cy="18" r="12" fill="none" stroke="#f59e0b" strokeWidth="10" strokeDasharray="4 96" strokeDashoffset="-96" />
+              </svg>
+            </div>
+
+            {/* Legend */}
+            <div className="space-y-1.5 text-xs text-slate-700">
+              <div className="flex items-center space-x-1.5 font-medium">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                <span>D: 48%</span>
+              </div>
+              <div className="flex items-center space-x-1.5 font-medium">
+                <span className="w-2.5 h-2.5 rounded-full bg-cyan-500" />
+                <span>C: 31%</span>
+              </div>
+              <div className="flex items-center space-x-1.5 font-medium">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                <span>B: 17%</span>
+              </div>
+              <div className="flex items-center space-x-1.5 font-medium">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                <span>A: 4%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Section: Recent Responses (Arm D) Table */}
+      <div className="bg-white rounded-lg border border-slate-200/90 shadow-2xs overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-100">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+            Recent Responses (Arm D)
+          </h2>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs text-slate-700">
+            <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
+              <tr>
+                <th className="py-2.5 px-3">Participant</th>
+                <th className="py-2.5 px-3">Case ID</th>
+                <th className="py-2.5 px-3">Diagnosis Decision</th>
+                <th className="py-2.5 px-3">Confidence (1-5)</th>
+                <th className="py-2.5 px-3">Trust (1-5)</th>
+                <th className="py-2.5 px-3">Time (s)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-medium text-xs font-mono">
+              {recentResponses.map((r) => (
+                <tr key={r.pId} className="hover:bg-slate-50/60">
+                  <td className="py-2.5 px-3 font-bold text-slate-800">{r.pId}</td>
+                  <td className="py-2.5 px-3 font-bold text-blue-600">{r.caseId}</td>
+                  <td className="py-2.5 px-3 font-sans font-semibold text-emerald-700">
+                    {r.decision}
+                  </td>
+                  <td className="py-2.5 px-3 font-bold text-slate-800">{r.confidence}</td>
+                  <td className="py-2.5 px-3 font-bold text-slate-800">{r.trust}</td>
+                  <td className="py-2.5 px-3 font-sans text-slate-600">{r.time}s</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-clinical-100 font-medium font-mono">
-                {benchmarks.map((b) => {
-                  const isD = b.condition.includes('D');
-                  return (
-                    <tr
-                      key={b.condition}
-                      className={isD ? 'bg-emerald-50/50 font-bold' : ''}
-                    >
-                      <td className="py-2.5 px-3 font-sans text-clinical-900">
-                        {b.condition}: {b.condition_name}
-                      </td>
-                      <td className="py-2.5 px-3 text-clinical-900">
-                        {b.mean_diagnostic_accuracy.toFixed(1)}%
-                      </td>
-                      <td className="py-2.5 px-3 text-blue-600">
-                        {b.mean_clinician_trust.toFixed(1)}%
-                      </td>
-                      <td className="py-2.5 px-3 text-clinical-700">
-                        {b.mean_decision_time.toFixed(1)}s
-                      </td>
-                      <td className="py-2.5 px-3 text-rose-700 font-bold">
-                        {b.overreliance_on_incorrect_ai.toFixed(1)}%
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-          <div className="p-3 bg-clinical-50 rounded-lg border border-clinical-200 text-xs text-clinical-700">
-            <p className="leading-relaxed">
-              <strong>Key Finding:</strong> Providing <strong>Condition D (TrustXAI-Med)</strong> reduced clinician overreliance
-              on incorrect AI outputs from <strong>34.2%</strong> down to <strong>7.4%</strong>, demonstrating the critical value of
-              explicit explanation reliability flags.
-            </p>
-          </div>
+        {/* Bottom Bar with Export Button */}
+        <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+          <span className="text-[11px] text-slate-500">
+            Study in progress. Results are preliminary and for research use only.
+          </span>
+          <button className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3 py-1.5 rounded shadow-2xs flex items-center space-x-1.5">
+            <Download className="w-3.5 h-3.5" />
+            <span>Export Study Data</span>
+          </button>
         </div>
       </div>
     </div>

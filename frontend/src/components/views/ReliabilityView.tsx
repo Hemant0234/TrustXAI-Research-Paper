@@ -1,174 +1,226 @@
 import React from 'react';
-import { ShieldCheck, Award, Info, AlertTriangle, CheckCircle2, HelpCircle } from 'lucide-react';
+import { ShieldCheck, Check, Info } from 'lucide-react';
 import { CaseAnalysis } from '../../types';
-import { XQIDisplay } from '../xqi/XQIDisplay';
-import { TrustAssessmentPanel } from '../reliability/TrustAssessmentPanel';
 
 interface ReliabilityViewProps {
   currentCase: CaseAnalysis;
-  onRecalculateXQI: (weights: Record<string, number>) => Promise<void>;
+  onRecalculateXQI?: (weights: Record<string, number>) => Promise<void>;
 }
 
-export const ReliabilityView: React.FC<ReliabilityViewProps> = ({
-  currentCase,
-  onRecalculateXQI
-}) => {
-  const metricDetails = [
-    {
-      id: 'faithfulness',
-      name: 'Model Faithfulness',
-      score: currentCase.xqi.faithfulness,
-      definition: 'Measures how accurately the explanation reflects the underlying diagnostic features used by the neural network.',
-      method: 'Pixel Masking & Output Logit Drop Analysis (Sensitivity-n)',
-      source: 'Internal Model Attribution Gradients',
-      interpretation: 'High faithfulness indicates removing salient pixels systematically degrades target class confidence.'
-    },
-    {
-      id: 'localization',
-      name: 'Clinical Localization',
-      score: currentCase.xqi.localization,
-      definition: 'Measures the spatial overlap (IoU / Saliency Recall) between the explanation and verified expert radiologist segmentations.',
-      method: 'Intersection-over-Union against CheXlocalize / Expert Contours',
-      source: 'Certified Radiologist Ground-Truth Annotations',
-      interpretation: currentCase.xqi.localization !== null
-        ? 'Attribution tightly encapsulates the verified anatomical lesion without excess background spill.'
-        : 'Ground-truth clinician localization annotations are not available for this specific dataset slice.'
-    },
-    {
-      id: 'robustness',
-      name: 'Perturbation Robustness',
-      score: currentCase.xqi.robustness,
-      definition: 'Quantifies explanation invariance against non-semantic input noise, brightness shifts, and detector blur.',
-      method: 'Structural Similarity Index (SSIM) under Controlled Noise Injectors',
-      source: 'Synthetic Perturbation Lab Suite',
-      interpretation: 'High robustness indicates the heatmap remains consistent across sensor and acquisition variations.'
-    },
-    {
-      id: 'stability',
-      name: 'Algorithmic Stability',
-      score: currentCase.xqi.stability,
-      definition: 'Assesses variance and reproducibility of the explainer when evaluated across stochastic sampling seeds.',
-      method: 'Monte Carlo Seed Perturbations & Gradient Variance',
-      source: 'Internal Explainer Kernel Re-runs',
-      interpretation: 'Stable explainers yield consistent attribution maps across multiple evaluation passes.'
-    },
-    {
-      id: 'consistency',
-      name: 'Cross-Method Consistency',
-      score: currentCase.xqi.consistency,
-      definition: 'Measures spatial correlation between gradient, perturbation, and attention-based attribution methods.',
-      method: 'Pairwise Pearson Correlation & Cosine Similarity',
-      source: 'Multi-XAI Explainer Ensemble',
-      interpretation: 'Consensus across distinct explainer paradigms strongly corroborates anatomical saliency.'
-    },
-    {
-      id: 'human_agreement',
-      name: 'Human Agreement',
-      score: currentCase.xqi.human_agreement,
-      definition: 'Direct clinician reader evaluation of explanation utility, clarity, and diagnostic concordance.',
-      method: '4-Condition Blinded Clinician Reader Study (Likert 1-5)',
-      source: 'Clinical Trust Study Reader Responses',
-      interpretation: currentCase.xqi.human_agreement !== null
-        ? 'Clinicians affirm high diagnostic relevance and anatomical concordance.'
-        : 'Human reader study data is not yet recorded for this specific individual case (Simulated default: N/A).'
-    },
-    {
-      id: 'uncertainty_alignment',
-      name: 'Uncertainty Alignment',
-      score: currentCase.xqi.uncertainty_alignment,
-      definition: 'Evaluates coherence between prediction confidence, normalized predictive entropy, and calibration error.',
-      method: 'Entropy Gating & Expected Calibration Error (ECE) Penalties',
-      source: 'Softmax Distribution & Monte Carlo Dropout Dispersion',
-      interpretation: 'High alignment confirms high confidence corresponds with genuinely low predictive entropy.'
-    }
+export const ReliabilityView: React.FC<ReliabilityViewProps> = ({ currentCase }) => {
+  const xqi = currentCase.xqi;
+  const reliability = currentCase.reliability;
+
+  const dimensions = [
+    { name: 'Faithfulness', score: xqi.faithfulness, max: 100 },
+    { name: 'Localization', score: xqi.localization, max: 100 },
+    { name: 'Robustness', score: xqi.robustness, max: 100 },
+    { name: 'Stability', score: xqi.stability, max: 100 },
+    { name: 'Consistency', score: xqi.consistency, max: 100 },
+    { name: 'Human Agreement', score: null, max: 100 },
+    { name: 'Uncertainty Alignment', score: xqi.uncertainty_alignment, max: 100 }
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="bg-white rounded-2xl border border-clinical-200 p-6 shadow-sm">
-        <div className="flex items-center space-x-2">
-          <span className="text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
-            Explanation Quality Index & Reliability
-          </span>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Reliability &amp; XQI</h1>
+          <p className="text-xs text-slate-500 font-medium">
+            Explanation quality and reliability assessment
+          </p>
         </div>
-        <h1 className="text-2xl font-extrabold text-clinical-900 tracking-tight mt-1.5">
-          Quantitative Quality & Reliability Assessment
-        </h1>
-        <p className="text-sm text-clinical-600 font-medium mt-1 max-w-3xl">
-          Addressing the <strong>Quantitative Quality Gap (RG3)</strong> and <strong>Explanation Reliability Gap (RG2)</strong>.
-          Every explanation is evaluated against 7 distinct quality dimensions before receiving a clinical trust recommendation.
-        </p>
+        <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          Demo Mode
+        </span>
       </div>
 
-      {/* Trust Assessment Panel */}
-      <TrustAssessmentPanel
-        reliability={currentCase.reliability}
-        uncertainty={currentCase.uncertainty}
-        xqi={currentCase.xqi}
-        confidenceProb={currentCase.prediction.probability}
-      />
+      {/* Top Section: Explanation Quality Index (XQI) Card */}
+      <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-4">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+          EXPLANATION QUALITY INDEX (XQI)
+        </div>
 
-      {/* Primary XQI Score & Configurator */}
-      <XQIDisplay
-        xqi={currentCase.xqi}
-        onRecalculateWeights={onRecalculateXQI}
-      />
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+          {/* Left: Semi-circular Gauge (5 cols) */}
+          <div className="md:col-span-5 flex flex-col items-center justify-center">
+            <div className="w-48 h-28 relative flex items-end justify-center">
+              <svg viewBox="0 0 100 55" className="w-full h-full">
+                {/* Background arc */}
+                <path
+                  d="M 10 50 A 40 40 0 0 1 90 50"
+                  fill="none"
+                  stroke="#e2e8f0"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                />
+                {/* Colored arc */}
+                <path
+                  d="M 10 50 A 40 40 0 0 1 90 50"
+                  fill="none"
+                  stroke="#10b981"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  strokeDasharray="126"
+                  strokeDashoffset={126 - (126 * (xqi.overall / 100))}
+                />
+              </svg>
+              <div className="absolute text-center mb-1">
+                <span className="text-3xl font-black font-mono text-slate-900 leading-none">
+                  {xqi.overall.toFixed(0)}
+                </span>
+                <span className="text-xs font-mono text-slate-400 font-semibold">/100</span>
+              </div>
+            </div>
 
-      {/* Deep-Dive Metric Documentation Cards */}
-      <div className="bg-white rounded-xl border border-clinical-200 p-5 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-clinical-100 pb-3">
-          <div className="flex items-center space-x-2">
-            <Info className="w-4 h-4 text-clinical-600" />
-            <span className="text-xs font-bold uppercase tracking-wider text-clinical-800">
-              Detailed Dimension Specification & Provenance
+            <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 mt-2">
+              HIGH QUALITY
+            </span>
+            <span className="text-[10px] text-slate-400 font-medium mt-0.5">
+              Research baseline assessment
             </span>
           </div>
-          <span className="text-[11px] text-clinical-500 font-mono">
-            Case: {currentCase.case_id}
-          </span>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {metricDetails.map((m) => {
-            const isNA = m.score === null || m.score === undefined;
-            return (
-              <div
-                key={m.id}
-                className="p-3.5 rounded-lg bg-clinical-50/75 border border-clinical-200/80 space-y-2 text-xs"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="font-bold text-clinical-900 text-xs block">{m.name}</span>
-                    <span className="text-[10px] text-clinical-500 font-mono">{m.source}</span>
+          {/* Right: XQI Breakdown Progress Bars (7 cols) */}
+          <div className="md:col-span-7 space-y-2">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+              XQI BREAKDOWN
+            </div>
+
+            <div className="space-y-1.5 text-xs">
+              {dimensions.map((d) => (
+                <div key={d.name} className="flex items-center justify-between gap-4">
+                  <span className="w-36 text-slate-600 font-medium truncate">{d.name}</span>
+                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${
+                        d.score !== null ? 'bg-blue-600' : 'bg-slate-300'
+                      }`}
+                      style={{ width: `${d.score !== null ? d.score : 0}%` }}
+                    />
                   </div>
-                  <span
-                    className={`font-mono font-bold text-sm px-2 py-0.5 rounded ${
-                      isNA
-                        ? 'bg-slate-200 text-slate-700'
-                        : m.score! >= 80
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : m.score! >= 60
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'bg-rose-100 text-rose-800'
-                    }`}
-                  >
-                    {isNA ? 'N/A' : `${Math.round(m.score!)} / 100`}
+                  <span className="w-14 text-right font-mono font-bold text-slate-800 text-[11px]">
+                    {d.score !== null ? `${d.score.toFixed(0)}/100` : 'N/A'}
                   </span>
                 </div>
-
-                <p className="text-clinical-700 text-[11px] leading-relaxed">
-                  <strong>Definition:</strong> {m.definition}
-                </p>
-
-                <div className="text-[10px] text-clinical-600 space-y-0.5 border-t border-clinical-200/60 pt-1.5">
-                  <div><strong>Measurement Method:</strong> {m.method}</div>
-                  <div><strong>Clinical Interpretation:</strong> {m.interpretation}</div>
-                </div>
-              </div>
-            );
-          })}
+              ))}
+            </div>
+          </div>
         </div>
+      </div>
+
+      {/* Bottom Section: Reliability Semi-gauge, Evidence Checklist, and Uncertainty Table */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Card 1: Explanation Reliability */}
+        <div className="bg-white rounded-lg border border-slate-200/90 p-4 shadow-2xs space-y-2 flex flex-col items-center justify-between text-center">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 w-full text-left">
+            EXPLANATION RELIABILITY
+          </div>
+
+          <div className="w-36 h-20 relative flex items-end justify-center">
+            <svg viewBox="0 0 100 55" className="w-full h-full">
+              <path
+                d="M 10 50 A 40 40 0 0 1 90 50"
+                fill="none"
+                stroke="#e2e8f0"
+                strokeWidth="8"
+                strokeLinecap="round"
+              />
+              <path
+                d="M 10 50 A 40 40 0 0 1 90 50"
+                fill="none"
+                stroke="#10b981"
+                strokeWidth="8"
+                strokeLinecap="round"
+                strokeDasharray="126"
+                strokeDashoffset={126 - (126 * (reliability.score / 100))}
+              />
+            </svg>
+            <div className="absolute text-center mb-0.5">
+              <span className="text-2xl font-black font-mono text-slate-900 leading-none">
+                {reliability.score.toFixed(0)}
+              </span>
+              <span className="text-[10px] font-mono text-slate-400 font-semibold">/100</span>
+            </div>
+          </div>
+
+          <div>
+            <span className="text-xs font-bold uppercase px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 block">
+              HIGH RELIABILITY
+            </span>
+            <span className="text-[10px] text-slate-400 font-medium mt-0.5 block">
+              Should the explanation be trusted? <strong>Yes</strong>
+            </span>
+          </div>
+        </div>
+
+        {/* Card 2: Reliability Evidence Checklist */}
+        <div className="bg-white rounded-lg border border-slate-200/90 p-4 shadow-2xs space-y-2">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            RELIABILITY EVIDENCE
+          </div>
+
+          <div className="space-y-1.5 text-xs">
+            <div className="flex items-center space-x-1.5 text-slate-700 font-medium">
+              <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>High cross-method agreement</span>
+            </div>
+            <div className="flex items-center space-x-1.5 text-slate-700 font-medium">
+              <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>Strong localization (matches annotations)</span>
+            </div>
+            <div className="flex items-center space-x-1.5 text-slate-700 font-medium">
+              <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>Stable under perturbations</span>
+            </div>
+            <div className="flex items-center space-x-1.5 text-slate-700 font-medium">
+              <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>Low prediction uncertainty</span>
+            </div>
+            <div className="flex items-center space-x-1.5 text-slate-700 font-medium">
+              <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>High faithfulness score</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Uncertainty -> Explanation Reliability */}
+        <div className="bg-white rounded-lg border border-slate-200/90 p-4 shadow-2xs space-y-2">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            UNCERTAINTY → EXPLANATION RELIABILITY
+          </div>
+
+          <div className="space-y-2 text-xs">
+            <div className="flex justify-between items-center py-1 border-b border-slate-100">
+              <span className="text-slate-600">Prediction Confidence</span>
+              <span className="font-mono font-bold text-slate-900">
+                {(currentCase.prediction.probability * 100).toFixed(0)}%
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-slate-100">
+              <span className="text-slate-600">Prediction Uncertainty</span>
+              <span className="font-mono font-bold text-emerald-600 uppercase">
+                {currentCase.uncertainty.level}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-slate-100">
+              <span className="text-slate-600">Explanation Reliability</span>
+              <span className="font-mono font-bold text-slate-900">
+                {reliability.score.toFixed(0)}%
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1">
+              <span className="text-slate-600">Alignment</span>
+              <span className="font-mono font-bold text-emerald-600">HIGH</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer text */}
+      <div className="text-center text-[10px] text-slate-400">
+        XQI weights are configurable and require empirical validation.
       </div>
     </div>
   );

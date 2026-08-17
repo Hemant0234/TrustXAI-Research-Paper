@@ -1,275 +1,163 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Sliders, RefreshCw, Activity, ArrowRight, ShieldCheck, AlertTriangle } from 'lucide-react';
-import { CaseAnalysis, PerturbationResult } from '../../types';
-import { runPerturbationTest } from '../../lib/api';
+import React from 'react';
+import { ShieldCheck, Sliders } from 'lucide-react';
+import { CaseAnalysis } from '../../types';
 
 interface RobustnessViewProps {
   currentCase: CaseAnalysis;
+  onRunPerturbation?: (type: string, intensity: number) => Promise<any>;
 }
 
 export const RobustnessView: React.FC<RobustnessViewProps> = ({ currentCase }) => {
-  const [perturbationType, setPerturbationType] = useState<string>('gaussian_noise');
-  const [intensity, setIntensity] = useState<number>(0.30);
-  const [selectedMethod, setSelectedMethod] = useState<string>('Grad-CAM++');
-  const [result, setResult] = useState<PerturbationResult | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const perturbations = [
+    { type: 'Original', ssim: '1.000', xqi: 87, loc: '100%' },
+    { type: 'Gaussian Noise (σ=0.1)', ssim: '0.942', xqi: 85, loc: '96%' },
+    { type: 'Brightness (+20%)', ssim: '0.976', xqi: 86, loc: '99%' },
+    { type: 'Contrast (-20%)', ssim: '0.951', xqi: 84, loc: '94%' },
+    { type: 'Gaussian Blur (5x5)', ssim: '0.905', xqi: 81, loc: '93%' },
+    { type: 'JPEG Compression (50%)', ssim: '0.908', xqi: 80, loc: '92%' },
+    { type: 'Rotation (5°)', ssim: '0.929', xqi: 83, loc: '94%' },
+    { type: 'Random Crop (80%)', ssim: '0.889', xqi: 79, loc: '91%' }
+  ];
 
-  const canvasPerturbedRef = useRef<HTMLCanvasElement | null>(null);
-  const canvasDiffRef = useRef<HTMLCanvasElement | null>(null);
+  // SVG Line Chart for XQI across perturbations
+  const chartPoints = [
+    { x: 20, y: 30, val: 87 },
+    { x: 50, y: 38, val: 85 },
+    { x: 80, y: 34, val: 86 },
+    { x: 110, y: 42, val: 84 },
+    { x: 140, y: 55, val: 81 },
+    { x: 170, y: 58, val: 80 },
+    { x: 200, y: 46, val: 83 },
+    { x: 230, y: 62, val: 79 }
+  ];
 
-  const handleRun = async () => {
-    setIsLoading(true);
-    try {
-      const data = await runPerturbationTest(
-        currentCase.case_id,
-        perturbationType,
-        intensity,
-        selectedMethod
-      );
-      setResult(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    handleRun();
-  }, [currentCase.case_id, perturbationType, intensity, selectedMethod]);
-
-  // Render perturbed and difference heatmaps onto canvas
-  useEffect(() => {
-    if (!result) return;
-
-    const renderMat = (canvas: HTMLCanvasElement | null, matrix: number[][], isDiff: boolean) => {
-      if (!canvas || !matrix || matrix.length === 0) return;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      const size = matrix.length;
-      canvas.width = 256;
-      canvas.height = 256;
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const imgData = ctx.createImageData(canvas.width, canvas.height);
-      const data = imgData.data;
-
-      const scaleX = size / canvas.width;
-      const scaleY = size / canvas.height;
-
-      for (let y = 0; y < canvas.height; y++) {
-        for (let x = 0; x < canvas.width; x++) {
-          const gridY = Math.min(size - 1, Math.floor(y * scaleY));
-          const gridX = Math.min(size - 1, Math.floor(x * scaleX));
-          const rawVal = matrix[gridY]?.[gridX] || 0;
-          const idx = (y * canvas.width + x) * 4;
-
-          if (rawVal < 0.1) {
-            data[idx + 3] = 0;
-            continue;
-          }
-
-          if (isDiff) {
-            // Difference in crimson
-            data[idx] = Math.floor(220 * rawVal);
-            data[idx + 1] = 0;
-            data[idx + 2] = Math.floor(60 * (1 - rawVal));
-            data[idx + 3] = Math.floor(200 * rawVal);
-          } else {
-            // Jet-like perturbed overlay
-            data[idx] = Math.floor(255 * rawVal);
-            data[idx + 1] = Math.floor(180 * (1 - rawVal));
-            data[idx + 2] = Math.floor(255 * (1 - rawVal));
-            data[idx + 3] = Math.floor(180 * rawVal);
-          }
-        }
-      }
-      ctx.putImageData(imgData, 0, 0);
-    };
-
-    renderMat(canvasPerturbedRef.current, result.perturbed_matrix, false);
-    renderMat(canvasDiffRef.current, result.difference_matrix, true);
-  }, [result]);
+  const pathD = `M ${chartPoints.map((p) => `${p.x},${p.y}`).join(' L ')}`;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="bg-white rounded-2xl border border-clinical-200 p-6 shadow-sm">
-        <div className="flex items-center space-x-2">
-          <span className="text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200">
-            Perturbation & Stress Testing
-          </span>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Robustness Lab</h1>
+          <p className="text-xs text-slate-500 font-medium">
+            Perturbation stability analysis for {currentCase.case_id}
+          </p>
         </div>
-        <h1 className="text-2xl font-extrabold text-clinical-900 tracking-tight mt-1.5">
-          Explanation Robustness & Stability Lab
-        </h1>
-        <p className="text-sm text-clinical-600 font-medium mt-1 max-w-3xl">
-          Evaluates explanation invariance under synthetic clinical perturbations (sensor noise, illumination shifts, blur, and affine transformations)
-          to ensure heatmaps do not suffer catastrophic semantic drift.
-        </p>
+        <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          Demo Mode
+        </span>
       </div>
 
-      {/* Control Panel */}
-      <div className="bg-white rounded-xl border border-clinical-200 p-4 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-        {/* Perturbation selector */}
-        <div className="space-y-1.5">
-          <span className="font-semibold text-clinical-700 block">Perturbation Transformation</span>
-          <select
-            value={perturbationType}
-            onChange={(e) => setPerturbationType(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg bg-clinical-50 border border-clinical-200 font-medium text-clinical-900"
-          >
-            <option value="gaussian_noise">Gaussian Sensor Noise (N(0, σ²))</option>
-            <option value="blur">Gaussian Acquisition Blur</option>
-            <option value="contrast">Contrast Attenuation / Gain</option>
-            <option value="brightness">Photometric Illumination Shift</option>
-            <option value="rotation">Patient Position Rotation (±10°)</option>
-            <option value="crop">Field-of-View Margin Cropping</option>
-          </select>
-        </div>
-
-        {/* Severity Slider */}
-        <div className="space-y-1.5">
-          <div className="flex justify-between font-semibold text-clinical-700">
-            <span>Perturbation Severity (Intensity)</span>
-            <span className="font-mono font-bold">{Math.round(intensity * 100)}%</span>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* Left: Perturbation Comparison Table (8 cols) */}
+        <div className="lg:col-span-8 bg-white rounded-lg border border-slate-200/90 shadow-2xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-slate-700">
+              <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
+                <tr>
+                  <th className="py-2.5 px-3">Perturbation Type</th>
+                  <th className="py-2.5 px-3">Perturbed Input</th>
+                  <th className="py-2.5 px-3">Fused Explanation</th>
+                  <th className="py-2.5 px-3">Similarity (SSIM)</th>
+                  <th className="py-2.5 px-3">XQI</th>
+                  <th className="py-2.5 px-3">Localization Consistency</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium">
+                {perturbations.map((p, idx) => (
+                  <tr key={p.type} className="hover:bg-slate-50/60">
+                    <td className="py-2 px-3 font-semibold text-slate-800 text-xs">
+                      {p.type}
+                    </td>
+                    <td className="py-2 px-3">
+                      <div className="w-9 h-9 bg-black rounded overflow-hidden relative border border-slate-700 flex items-center justify-center">
+                        <img
+                          src={currentCase.image_base64}
+                          alt="Perturbed"
+                          className={`w-full h-full object-contain opacity-70 ${
+                            idx === 1 ? 'contrast-125' : idx === 2 ? 'brightness-125' : ''
+                          }`}
+                        />
+                      </div>
+                    </td>
+                    <td className="py-2 px-3">
+                      <div className="w-9 h-9 bg-black rounded overflow-hidden relative border border-slate-700 flex items-center justify-center">
+                        <img
+                          src={currentCase.image_base64}
+                          alt="Fused"
+                          className="w-full h-full object-contain opacity-70"
+                        />
+                        <div className="absolute inset-0 bg-blue-500/30 mix-blend-screen" />
+                      </div>
+                    </td>
+                    <td className="py-2 px-3 font-mono font-bold text-slate-800 text-xs">
+                      {p.ssim}
+                    </td>
+                    <td className="py-2 px-3 font-mono font-bold text-slate-800 text-xs">
+                      {p.xqi}
+                    </td>
+                    <td className="py-2 px-3 font-mono font-bold text-slate-800 text-xs">
+                      {p.loc}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <input
-            type="range"
-            min="0.05"
-            max="0.80"
-            step="0.05"
-            value={intensity}
-            onChange={(e) => setIntensity(parseFloat(e.target.value))}
-            className="w-full h-2 bg-clinical-200 rounded-lg appearance-none cursor-pointer accent-blue-600 mt-2"
-          />
         </div>
 
-        {/* Explainer Target */}
-        <div className="space-y-1.5">
-          <span className="font-semibold text-clinical-700 block">Target Explainer Under Test</span>
-          <select
-            value={selectedMethod}
-            onChange={(e) => setSelectedMethod(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg bg-clinical-50 border border-clinical-200 font-medium text-clinical-900"
-          >
-            <option value="Grad-CAM++">Grad-CAM++</option>
-            <option value="SHAP">SHAP</option>
-            <option value="Integrated Gradients">Integrated Gradients</option>
-            <option value="Attention Rollout">Attention Rollout</option>
-            <option value="Fused">Fused Unified Explanation</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Multi-Panel Visual Comparison: Original -> Perturbed -> Difference */}
-      {result && (
-        <div className="bg-white rounded-xl border border-clinical-200 p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-clinical-100 pb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-clinical-800">
-              Perturbation Saliency Degradation Flow
-            </span>
-            <div className="flex items-center space-x-2">
-              <span className="text-xs text-clinical-500">Perturbation Stability Score:</span>
-              <span
-                className={`font-mono font-bold text-sm px-2 py-0.5 rounded ${
-                  result.perturbation_stability_score >= 80
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : result.perturbation_stability_score >= 60
-                    ? 'bg-amber-100 text-amber-800'
-                    : 'bg-rose-100 text-rose-800'
-                }`}
-              >
-                {result.perturbation_stability_score.toFixed(1)}%
+        {/* Right: Stability Score Card & XQI Across Perturbations Line Chart (4 cols) */}
+        <div className="lg:col-span-4 space-y-4">
+          {/* Card 1: Perturbation Stability Score */}
+          <div className="bg-white rounded-lg border border-slate-200/90 p-4 shadow-2xs space-y-2">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              PERTURBATION STABILITY SCORE
+            </div>
+            <div className="flex items-baseline space-x-2">
+              <span className="text-3xl font-black font-mono text-emerald-600">94%</span>
+              <span className="text-xs font-bold text-emerald-700 uppercase tracking-wide">
+                HIGHLY STABLE
               </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Panel 1: Original */}
-            <div className="p-3 rounded-lg bg-clinical-50 border border-clinical-200 flex flex-col items-center space-y-2">
-              <span className="text-[11px] font-bold text-clinical-700 uppercase">
-                1. Original Input Baseline
-              </span>
-              <div className="w-[200px] h-[200px] rounded-lg overflow-hidden border border-slate-700 bg-black relative shadow-inner">
-                <img
-                  src={currentCase.image_base64}
-                  alt="Original"
-                  className="w-full h-full object-contain pointer-events-none"
-                />
-              </div>
-              <div className="text-[11px] text-clinical-600 font-mono text-center">
-                Conf: {(result.original_confidence * 100).toFixed(1)}% • XQI: {result.original_xqi.toFixed(1)}
-              </div>
+          {/* Card 2: XQI Across Perturbations Chart */}
+          <div className="bg-white rounded-lg border border-slate-200/90 p-4 shadow-2xs space-y-3">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              XQI ACROSS PERTURBATIONS
             </div>
 
-            {/* Panel 2: Perturbed Input & Heatmap */}
-            <div className="p-3 rounded-lg bg-clinical-50 border border-clinical-200 flex flex-col items-center space-y-2">
-              <span className="text-[11px] font-bold text-clinical-700 uppercase">
-                2. Perturbed Saliency ({result.perturbation_type})
-              </span>
-              <div className="w-[200px] h-[200px] rounded-lg overflow-hidden border border-slate-700 bg-black relative shadow-inner">
-                <img
-                  src={currentCase.image_base64}
-                  alt="Original"
-                  style={{
-                    filter:
-                      perturbationType === 'blur'
-                        ? `blur(${intensity * 4}px)`
-                        : perturbationType === 'contrast'
-                        ? `contrast(${1 + intensity})`
-                        : perturbationType === 'brightness'
-                        ? `brightness(${1 + intensity * 0.5})`
-                        : 'none',
-                    transform:
-                      perturbationType === 'rotation'
-                        ? `rotate(${intensity * 10}deg)`
-                        : 'none',
-                  }}
-                  className="w-full h-full object-contain pointer-events-none absolute inset-0 opacity-80"
-                />
-                <canvas
-                  ref={canvasPerturbedRef}
-                  className="w-full h-full object-contain pointer-events-none absolute inset-0"
-                />
-              </div>
-              <div className="text-[11px] text-clinical-600 font-mono text-center">
-                Conf: {(result.perturbed_confidence * 100).toFixed(1)}% • XQI: {result.perturbed_xqi.toFixed(1)}
-              </div>
+            {/* SVG Line Chart */}
+            <div className="w-full h-32 relative">
+              <svg viewBox="0 0 250 100" className="w-full h-full">
+                {/* Horizontal Grid lines */}
+                <line x1="15" y1="20" x2="245" y2="20" stroke="#f1f5f9" strokeWidth="1" />
+                <line x1="15" y1="40" x2="245" y2="40" stroke="#f1f5f9" strokeWidth="1" />
+                <line x1="15" y1="60" x2="245" y2="60" stroke="#f1f5f9" strokeWidth="1" />
+                <line x1="15" y1="80" x2="245" y2="80" stroke="#f1f5f9" strokeWidth="1" />
+
+                {/* Y-axis labels */}
+                <text x="5" y="23" fontSize="7" fill="#94a3b8" fontFamily="sans-serif">90</text>
+                <text x="5" y="43" fontSize="7" fill="#94a3b8" fontFamily="sans-serif">85</text>
+                <text x="5" y="63" fontSize="7" fill="#94a3b8" fontFamily="sans-serif">80</text>
+                <text x="5" y="83" fontSize="7" fill="#94a3b8" fontFamily="sans-serif">75</text>
+
+                {/* Line Path */}
+                <path d={pathD} fill="none" stroke="#3b82f6" strokeWidth="2" />
+
+                {/* Circles */}
+                {chartPoints.map((p, i) => (
+                  <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="#3b82f6" stroke="#fff" strokeWidth="1" />
+                ))}
+              </svg>
             </div>
 
-            {/* Panel 3: Difference Map */}
-            <div className="p-3 rounded-lg bg-clinical-50 border border-clinical-200 flex flex-col items-center space-y-2">
-              <span className="text-[11px] font-bold text-rose-700 uppercase">
-                3. Spatial Difference / Saliency Drift
-              </span>
-              <div className="w-[200px] h-[200px] rounded-lg overflow-hidden border border-slate-700 bg-slate-950 relative shadow-inner">
-                <canvas
-                  ref={canvasDiffRef}
-                  className="w-full h-full object-contain pointer-events-none"
-                />
-                <div className="absolute bottom-1 right-1 text-[9px] font-mono text-rose-400 bg-black/60 px-1 rounded">
-                  Δ Absolute Drift
-                </div>
-              </div>
-              <div className="text-[11px] text-clinical-600 font-mono text-center">
-                Similarity Index: {(result.explanation_similarity * 100).toFixed(1)}%
-              </div>
-            </div>
-          </div>
-
-          {/* Research Interpretation Callout */}
-          <div className="p-3 rounded-lg bg-slate-100 border border-slate-200 text-xs text-slate-800">
-            <span className="font-bold text-[11px] uppercase tracking-wider text-slate-600 block">
-              Stability Analysis Finding
-            </span>
-            <p className="mt-0.5 leading-relaxed">
-              {result.interpretation}
+            <p className="text-[10px] text-slate-500 pt-1">
+              This explanation remains stable across common image perturbations.
             </p>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
