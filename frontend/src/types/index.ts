@@ -172,14 +172,21 @@ export interface ModelItem {
   id: string;
   name: string;
   architecture: string;
-  modality: string;
-  training_dataset: string;
-  auc: number;
-  ece: number;
+  domain?: string;
+  modality?: string;
+  default_dataset?: string;
+  training_dataset?: string;
+  task?: string;
+  auc_roc?: number;
+  auc?: number;
+  accuracy?: number;
+  calibration_ece?: number;
+  ece?: number;
   parameters: string;
   status: string;
-  is_active: boolean;
-  weights_path: string;
+  layer_hook?: string;
+  is_active?: boolean;
+  weights_path?: string;
 }
 
 export interface ExperimentItem {

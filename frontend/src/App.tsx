@@ -11,6 +11,8 @@ import { ValidationView } from './components/views/ValidationView';
 import { ExperimentsView } from './components/views/ExperimentsView';
 import { ClinicalStudyView } from './components/views/ClinicalStudyView';
 import { ReportsView } from './components/views/ReportsView';
+import { DatasetsView } from './components/views/DatasetsView';
+import { ModelsView } from './components/views/ModelsView';
 import { SettingsView } from './components/views/SettingsView';
 import { api, DEMO_CASES_CATALOG } from './lib/api';
 import { CaseAnalysis, CaseSummary } from './types';
@@ -154,9 +156,11 @@ export const App: React.FC = () => {
                 <ReportsView currentCase={caseData} />
               )}
 
-              {(activeView === 'datasets' ||
-                activeView === 'models' ||
-                activeView === 'settings') && <SettingsView />}
+              {activeView === 'datasets' && <DatasetsView />}
+
+              {activeView === 'models' && <ModelsView />}
+
+              {activeView === 'settings' && <SettingsView />}
             </>
           )}
         </main>
