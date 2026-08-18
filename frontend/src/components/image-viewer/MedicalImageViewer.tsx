@@ -21,6 +21,8 @@ interface MedicalImageViewerProps {
   fusion: FusionResult;
   groundTruthBbox?: number[];
   groundTruthClass?: string;
+  activeOverlay?: OverlayMode;
+  onOverlayChange?: (mode: OverlayMode) => void;
 }
 
 export type OverlayMode =
@@ -40,9 +42,16 @@ export const MedicalImageViewer: React.FC<MedicalImageViewerProps> = ({
   explanations,
   fusion,
   groundTruthBbox,
-  groundTruthClass
+  groundTruthClass,
+  activeOverlay: externalOverlay,
+  onOverlayChange
 }) => {
-  const [activeOverlay, setActiveOverlay] = useState<OverlayMode>('fused');
+  const [internalOverlay, setInternalOverlay] = useState<OverlayMode>('fused');
+  const activeOverlay = externalOverlay || internalOverlay;
+  const setActiveOverlay = (mode: OverlayMode) => {
+    setInternalOverlay(mode);
+    if (onOverlayChange) onOverlayChange(mode);
+  };
   const [opacity, setOpacity] = useState<number>(0.70);
   const [threshold, setThreshold] = useState<number>(0.20);
   const [zoom, setZoom] = useState<number>(1.0);

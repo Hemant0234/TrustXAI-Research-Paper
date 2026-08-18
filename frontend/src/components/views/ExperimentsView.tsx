@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Plus, Filter, Calendar } from 'lucide-react';
+import { Plus, Filter, Calendar, Check, X, Sparkles, Loader2 } from 'lucide-react';
 
 export const ExperimentsView: React.FC = () => {
-  const experiments = [
+  const initialExperiments = [
     {
       id: 'E-017',
       dataset: 'CheXpert',
@@ -55,18 +55,60 @@ export const ExperimentsView: React.FC = () => {
     }
   ];
 
-  // Scatter plot points
-  const scatterPoints = [
-    { xqi: 72, rel: 69, type: 'single' },
-    { xqi: 75, rel: 74, type: 'single' },
-    { xqi: 78, rel: 76, type: 'single' },
-    { xqi: 81, rel: 84, type: 'hybrid-mid' },
-    { xqi: 82, rel: 85, type: 'hybrid-mid' },
-    { xqi: 84, rel: 88, type: 'hybrid-high' },
-    { xqi: 87, rel: 92, type: 'hybrid-high' },
-    { xqi: 88, rel: 93, type: 'hybrid-high' },
-    { xqi: 89, rel: 94, type: 'hybrid-high' }
-  ];
+  const [experiments, setExperiments] = useState(initialExperiments);
+  const [selectedDataset, setSelectedDataset] = useState<string>('all');
+  const [selectedModel, setSelectedModel] = useState<string>('all');
+  const [selectedMethod, setSelectedMethod] = useState<string>('all');
+
+  // Modal State for New Experiment
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [newExpDataset, setNewExpDataset] = useState<string>('CheXpert');
+  const [newExpModel, setNewExpModel] = useState<string>('DenseNet-121');
+  const [newExpMethod, setNewExpMethod] = useState<string>('Hybrid (4-XAI)');
+  const [newExpFusion, setNewExpFusion] = useState<string>('Uncertainty-Weighted v2');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  const filteredExperiments = experiments.filter((e) => {
+    if (selectedDataset !== 'all' && e.dataset !== selectedDataset) return false;
+    if (selectedModel !== 'all' && e.model !== selectedModel) return false;
+    if (selectedMethod !== 'all') {
+      if (selectedMethod === 'Hybrid' && !e.method.includes('Hybrid')) return false;
+      if (selectedMethod === 'Single' && e.method.includes('Hybrid')) return false;
+    }
+    return true;
+  });
+
+  const scatterPoints = filteredExperiments.map((e) => ({
+    xqi: e.xqi,
+    rel: e.rel,
+    type: e.method.includes('Hybrid') ? (e.rel >= 88 ? 'hybrid-high' : 'hybrid-mid') : 'single'
+  }));
+
+  const handleCreateExperiment = () => {
+    setIsSubmitting(true);
+    setTimeout(() => {
+      const nextNum = experiments.length + 14;
+      const newId = `E-0${nextNum}`;
+      const randomXqi = Math.floor(Math.random() * 12) + 78;
+      const randomRel = Math.floor(Math.random() * 12) + 80;
+      const randomAuc = (0.92 + Math.random() * 0.04).toFixed(3);
+
+      const created = {
+        id: newId,
+        dataset: newExpDataset,
+        model: newExpModel,
+        method: newExpMethod,
+        fusion: newExpFusion,
+        xqi: randomXqi,
+        rel: randomRel,
+        auc: randomAuc
+      };
+
+      setExperiments((prev) => [created, ...prev]);
+      setIsSubmitting(false);
+      setIsModalOpen(false);
+    }, 400);
+  };
 
   return (
     <div className="space-y-4">
@@ -77,38 +119,48 @@ export const ExperimentsView: React.FC = () => {
             Experiment Comparison
           </h1>
           <p className="text-xs text-slate-500 font-medium">
-            Compare different XAI configurations
+            Compare explanation quality and reliability across XAI configurations ({filteredExperiments.length} Shown)
           </p>
         </div>
 
         {/* Right filters & action button */}
         <div className="flex flex-wrap items-center gap-2">
-          <select className="text-xs bg-white border border-slate-200 rounded-md px-2.5 py-1 text-slate-700 font-medium">
-            <option>Filter: All Datasets</option>
-            <option>CheXpert</option>
-            <option>ISIC</option>
-            <option>BraTS</option>
+          <select
+            value={selectedDataset}
+            onChange={(e) => setSelectedDataset(e.target.value)}
+            className="text-xs bg-white border border-slate-200 rounded-md px-2.5 py-1 text-slate-700 font-medium cursor-pointer"
+          >
+            <option value="all">All Datasets</option>
+            <option value="CheXpert">CheXpert</option>
+            <option value="ISIC">ISIC</option>
+            <option value="BraTS">BraTS</option>
           </select>
 
-          <select className="text-xs bg-white border border-slate-200 rounded-md px-2.5 py-1 text-slate-700 font-medium">
-            <option>All Models</option>
-            <option>DenseNet-121</option>
-            <option>ResNet-50</option>
-            <option>EfficientNet-B0</option>
+          <select
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            className="text-xs bg-white border border-slate-200 rounded-md px-2.5 py-1 text-slate-700 font-medium cursor-pointer"
+          >
+            <option value="all">All Models</option>
+            <option value="DenseNet-121">DenseNet-121</option>
+            <option value="ResNet-50">ResNet-50</option>
+            <option value="EfficientNet-B0">EfficientNet-B0</option>
           </select>
 
-          <select className="text-xs bg-white border border-slate-200 rounded-md px-2.5 py-1 text-slate-700 font-medium">
-            <option>All XAI Methods</option>
-            <option>Hybrid (4-XAI)</option>
-            <option>Single XAI</option>
+          <select
+            value={selectedMethod}
+            onChange={(e) => setSelectedMethod(e.target.value)}
+            className="text-xs bg-white border border-slate-200 rounded-md px-2.5 py-1 text-slate-700 font-medium cursor-pointer"
+          >
+            <option value="all">All XAI Methods</option>
+            <option value="Hybrid">Hybrid Consensus</option>
+            <option value="Single">Single Explainer</option>
           </select>
 
-          <div className="flex items-center space-x-1 text-xs bg-white border border-slate-200 rounded-md px-2.5 py-1 text-slate-500">
-            <Calendar className="w-3 h-3 text-slate-400" />
-            <span>Apr 1, 2026 – May 12, 2026</span>
-          </div>
-
-          <button className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3 py-1 rounded-md shadow-2xs flex items-center space-x-1">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="text-xs bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold px-3 py-1 rounded-md shadow-2xs flex items-center space-x-1 transition-all"
+          >
             <Plus className="w-3.5 h-3.5" />
             <span>New Experiment</span>
           </button>
@@ -125,14 +177,14 @@ export const ExperimentsView: React.FC = () => {
                 <th className="py-2.5 px-3">Dataset</th>
                 <th className="py-2.5 px-3">Model</th>
                 <th className="py-2.5 px-3">XAI Method</th>
-                <th className="py-2.5 px-3">Fusion</th>
-                <th className="py-2.5 px-3">XQI</th>
+                <th className="py-2.5 px-3">Fusion Strategy</th>
+                <th className="py-2.5 px-3">XQI Index</th>
                 <th className="py-2.5 px-3">Reliability</th>
-                <th className="py-2.5 px-3">AUC</th>
+                <th className="py-2.5 px-3">AUC Score</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium text-xs">
-              {experiments.map((e) => (
+              {filteredExperiments.map((e) => (
                 <tr key={e.id} className="hover:bg-slate-50/60 font-mono text-xs">
                   <td className="py-2.5 px-3 font-bold text-blue-600">{e.id}</td>
                   <td className="py-2.5 px-3 font-sans text-slate-700">{e.dataset}</td>
@@ -144,6 +196,13 @@ export const ExperimentsView: React.FC = () => {
                   <td className="py-2.5 px-3 font-bold text-slate-800">{e.auc}</td>
                 </tr>
               ))}
+              {filteredExperiments.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="py-6 text-center text-slate-400 font-sans">
+                    No experiments match the selected filters.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -155,20 +214,20 @@ export const ExperimentsView: React.FC = () => {
         <div className="lg:col-span-8 bg-white rounded-lg border border-slate-200/90 p-4 shadow-2xs space-y-2">
           <div className="flex items-center justify-between">
             <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              XQI VS RELIABILITY
+              XQI VS RELIABILITY SCATTER DISTRIBUTION
             </div>
             <div className="flex items-center space-x-3 text-[10px] text-slate-500">
               <span className="flex items-center space-x-1">
                 <span className="w-2 h-2 rounded-full bg-blue-600" />
-                <span>Hybrid (80-100)</span>
+                <span>Hybrid High (&ge;88)</span>
               </span>
               <span className="flex items-center space-x-1">
                 <span className="w-2 h-2 rounded-full bg-cyan-500" />
-                <span>Hybrid (60-80)</span>
+                <span>Hybrid Mid (60-87)</span>
               </span>
               <span className="flex items-center space-x-1">
                 <span className="w-2 h-2 rounded-full bg-slate-400" />
-                <span>Single XAI</span>
+                <span>Single Explainer</span>
               </span>
             </div>
           </div>
@@ -208,15 +267,15 @@ export const ExperimentsView: React.FC = () => {
 
               {/* Scatter Circles */}
               {scatterPoints.map((pt, i) => {
-                const cx = 30 + ((pt.xqi - 60) / 40) * 260;
-                const cy = 110 - ((pt.rel - 60) / 40) * 100;
+                const cx = Math.max(30, Math.min(290, 30 + ((pt.xqi - 60) / 40) * 260));
+                const cy = Math.max(10, Math.min(110, 110 - ((pt.rel - 60) / 40) * 100));
                 const fill =
                   pt.type === 'hybrid-high'
                     ? '#2563eb'
                     : pt.type === 'hybrid-mid'
                     ? '#06b6d4'
                     : '#94a3b8';
-                return <circle key={i} cx={cx} cy={cy} r="4" fill={fill} stroke="#fff" strokeWidth="1" />;
+                return <circle key={i} cx={cx} cy={cy} r="4.5" fill={fill} stroke="#fff" strokeWidth="1.5" className="transition-all hover:r-6 cursor-pointer" />;
               })}
             </svg>
           </div>
@@ -229,7 +288,7 @@ export const ExperimentsView: React.FC = () => {
               KEY INSIGHT
             </div>
             <p className="text-xs text-slate-700 leading-relaxed font-medium">
-              Hybrid XAI with weighted fusion consistently achieves higher explanation reliability for the
+              Hybrid XAI with uncertainty-weighted fusion consistently achieves higher explanation reliability for the
               same level of prediction performance.
             </p>
           </div>
@@ -242,6 +301,103 @@ export const ExperimentsView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* New Experiment Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="bg-slate-900 text-white p-4 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Sparkles className="w-4 h-4 text-blue-400" />
+                <h3 className="font-bold text-sm">Configure New Experiment</h3>
+              </div>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-slate-400 hover:text-white text-xs font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-5 space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Target Dataset</label>
+                <select
+                  value={newExpDataset}
+                  onChange={(e) => setNewExpDataset(e.target.value)}
+                  className="w-full px-3 py-1.5 rounded border border-slate-200 text-slate-800 bg-slate-50"
+                >
+                  <option value="CheXpert">CheXpert (Chest Radiographs)</option>
+                  <option value="ISIC">ISIC 2024 (Dermoscopy)</option>
+                  <option value="BraTS">BraTS 2023 (Brain MRI)</option>
+                  <option value="VinDr-CXR">VinDr-CXR (External Holdout)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Model Architecture</label>
+                <select
+                  value={newExpModel}
+                  onChange={(e) => setNewExpModel(e.target.value)}
+                  className="w-full px-3 py-1.5 rounded border border-slate-200 text-slate-800 bg-slate-50"
+                >
+                  <option value="DenseNet-121">DenseNet-121 (Radiology Backbone)</option>
+                  <option value="ResNet-50">ResNet-50 (Deep Benchmark)</option>
+                  <option value="EfficientNet-B0">EfficientNet-B0 (Dermoscopy)</option>
+                  <option value="ViT-B/16">Vision Transformer (ViT-B/16)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">XAI Strategy</label>
+                <select
+                  value={newExpMethod}
+                  onChange={(e) => setNewExpMethod(e.target.value)}
+                  className="w-full px-3 py-1.5 rounded border border-slate-200 text-slate-800 bg-slate-50"
+                >
+                  <option value="Hybrid (4-XAI)">Hybrid (4-XAI Multi-Consensus)</option>
+                  <option value="Hybrid (3-XAI)">Hybrid (3-XAI Saliency)</option>
+                  <option value="Grad-CAM++">Grad-CAM++ (Solitary Baseline)</option>
+                  <option value="SHAP">SHAP (Solitary Baseline)</option>
+                  <option value="Integrated Gradients">Integrated Gradients (Solitary Baseline)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Fusion Strategy</label>
+                <select
+                  value={newExpFusion}
+                  onChange={(e) => setNewExpFusion(e.target.value)}
+                  className="w-full px-3 py-1.5 rounded border border-slate-200 text-slate-800 bg-slate-50"
+                >
+                  <option value="Uncertainty-Weighted v2">Uncertainty-Weighted v2 (Recommended)</option>
+                  <option value="Entropy-Gated Consensus">Entropy-Gated Consensus</option>
+                  <option value="Equal-Weight Average">Equal-Weight Average</option>
+                  <option value="—">None (Single XAI)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="p-3 bg-slate-50 border-t border-slate-200 flex justify-end space-x-2">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="px-3 py-1.5 rounded border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-100"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateExperiment}
+                disabled={isSubmitting}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded shadow-2xs flex items-center space-x-1"
+              >
+                {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                <span>Launch &amp; Record Experiment</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+export default ExperimentsView;

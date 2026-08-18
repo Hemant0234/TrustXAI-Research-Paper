@@ -1,15 +1,15 @@
-import React from 'react';
-import { Download, Stethoscope, CheckCircle, Clock, Star } from 'lucide-react';
+import React, { useState } from 'react';
+import { Download, Stethoscope, CheckCircle, Clock, Star, Plus, Check, Loader2, Sparkles } from 'lucide-react';
 
 export const ClinicalStudyView: React.FC = () => {
-  const trustBars = [
+  const [trustBars, setTrustBars] = useState([
     { arm: 'A', val: 2.41, height: '48%' },
     { arm: 'B', val: 3.04, height: '60%' },
     { arm: 'C', val: 3.62, height: '72%' },
     { arm: 'D', val: 4.21, height: '84%' }
-  ];
+  ]);
 
-  const recentResponses = [
+  const initialResponses = [
     {
       pId: 'P-07',
       caseId: 'TX-2048',
@@ -36,20 +36,83 @@ export const ClinicalStudyView: React.FC = () => {
     }
   ];
 
+  const [responses, setResponses] = useState(initialResponses);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // New Record Form State
+  const [participantId, setParticipantId] = useState<string>('P-14');
+  const [caseId, setCaseId] = useState<string>('TX-2048');
+  const [decision, setDecision] = useState<string>('Correct');
+  const [confidence, setConfidence] = useState<number>(5);
+  const [trust, setTrust] = useState<number>(5);
+  const [latency, setLatency] = useState<number>(28);
+
+  const handleExportData = () => {
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      ['Participant,CaseID,Decision,Confidence_1to5,Trust_1to5,Latency_Seconds']
+        .concat(responses.map((r) => `${r.pId},${r.caseId},${r.decision},${r.confidence},${r.trust},${r.time}`))
+        .join('\n');
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `clinical_study_data_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setToastMessage('Clinical study evaluation data exported to CSV.');
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleRecordResponse = () => {
+    const newEntry = {
+      pId: participantId,
+      caseId,
+      decision,
+      confidence,
+      trust,
+      time: latency
+    };
+    setResponses((prev) => [newEntry, ...prev]);
+    setIsModalOpen(false);
+    setToastMessage(`Evaluation recorded for participant ${participantId}.`);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Clinical Study</h1>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Clinical Study Workbench</h1>
           <p className="text-xs text-slate-500 font-medium">
-            Human evaluation of explanation usefulness
+            Human clinician evaluation of explanation usefulness &amp; trust calibration
           </p>
         </div>
-        <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-          Demo Mode
-        </span>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-xs rounded-lg shadow-2xs flex items-center space-x-1.5 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>+ Record Evaluation</span>
+          </button>
+          <span className="text-xs px-2.5 py-1 rounded-full font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            Study Active
+          </span>
+        </div>
       </div>
+
+      {/* Toast notification */}
+      {toastMessage && (
+        <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 font-medium flex items-center justify-between animate-in fade-in duration-150">
+          <span>✓ {toastMessage}</span>
+          <button onClick={() => setToastMessage(null)} className="text-emerald-700 font-bold">✕</button>
+        </div>
+      )}
 
       {/* Top Section: 5 KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -57,19 +120,19 @@ export const ClinicalStudyView: React.FC = () => {
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
             Participants
           </div>
-          <div className="text-2xl font-black font-mono text-slate-900 mt-1">12</div>
+          <div className="text-2xl font-black font-mono text-slate-900 mt-1">{12 + responses.length - 3}</div>
         </div>
 
         <div className="bg-white rounded-lg border border-slate-200/90 p-3 shadow-2xs">
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
             Cases Evaluated
           </div>
-          <div className="text-2xl font-black font-mono text-slate-900 mt-1">240</div>
+          <div className="text-2xl font-black font-mono text-slate-900 mt-1">{240 + responses.length - 3}</div>
         </div>
 
         <div className="bg-white rounded-lg border border-slate-200/90 p-3 shadow-2xs">
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-            Avg. Trust (D)
+            Avg. Trust (Arm D)
           </div>
           <div className="text-2xl font-black font-mono text-slate-900 mt-1">
             4.21 <span className="text-xs font-normal text-slate-400">/5</span>
@@ -78,7 +141,7 @@ export const ClinicalStudyView: React.FC = () => {
 
         <div className="bg-white rounded-lg border border-slate-200/90 p-3 shadow-2xs">
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-            Accuracy (D)
+            Accuracy (Arm D)
           </div>
           <div className="text-2xl font-black font-mono text-slate-900 mt-1">87.5%</div>
         </div>
@@ -88,7 +151,7 @@ export const ClinicalStudyView: React.FC = () => {
             <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
               Study Progress
             </div>
-            <div className="text-xl font-black font-mono text-slate-900 mt-1">68%</div>
+            <div className="text-xl font-black font-mono text-slate-900 mt-1">72%</div>
           </div>
           {/* Circular progress */}
           <div className="w-10 h-10 relative shrink-0">
@@ -101,7 +164,7 @@ export const ClinicalStudyView: React.FC = () => {
                 fill="none"
                 stroke="#10b981"
                 strokeWidth="3.5"
-                strokeDasharray="68 100"
+                strokeDasharray="72 100"
                 strokeLinecap="round"
               />
             </svg>
@@ -114,26 +177,26 @@ export const ClinicalStudyView: React.FC = () => {
         {/* Left: Study Arms (4 cols) */}
         <div className="lg:col-span-4 bg-white rounded-lg border border-slate-200/90 p-4 shadow-2xs space-y-3">
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-            STUDY ARMS
+            STUDY ARMS (EXPERIMENTAL CONDITIONS)
           </div>
 
           <div className="space-y-2 text-xs">
             <div className="p-2 rounded bg-slate-50 border border-slate-200 flex items-start space-x-2">
               <span className="font-bold text-slate-800 font-mono">A:</span>
-              <span className="text-slate-600 font-medium">Prediction Only</span>
+              <span className="text-slate-600 font-medium">Prediction Only (Black Box)</span>
             </div>
             <div className="p-2 rounded bg-slate-50 border border-slate-200 flex items-start space-x-2">
               <span className="font-bold text-slate-800 font-mono">B:</span>
-              <span className="text-slate-600 font-medium">Prediction + Grad-CAM</span>
+              <span className="text-slate-600 font-medium">Prediction + Grad-CAM++</span>
             </div>
             <div className="p-2 rounded bg-slate-50 border border-slate-200 flex items-start space-x-2">
               <span className="font-bold text-slate-800 font-mono">C:</span>
-              <span className="text-slate-600 font-medium">Prediction + Hybrid XAI</span>
+              <span className="text-slate-600 font-medium">Prediction + Hybrid Consensus</span>
             </div>
             <div className="p-2 rounded bg-blue-50/70 border border-blue-200 flex items-start space-x-2">
               <span className="font-bold text-blue-800 font-mono">D:</span>
               <span className="text-blue-900 font-semibold">
-                Prediction + Hybrid XAI + XQI + Uncertainty
+                Prediction + Hybrid XAI + XQI + Uncertainty Gating
               </span>
             </div>
           </div>
@@ -142,7 +205,7 @@ export const ClinicalStudyView: React.FC = () => {
         {/* Center: Trust Rating (1-5) Bar Chart (4 cols) */}
         <div className="lg:col-span-4 bg-white rounded-lg border border-slate-200/90 p-4 shadow-2xs space-y-3">
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-            TRUST RATING (1–5)
+            CLINICIAN TRUST RATING (1–5 LIKERT)
           </div>
 
           <div className="h-44 flex items-end justify-around px-2 pt-4 pb-2 border-b border-slate-100">
@@ -157,7 +220,7 @@ export const ClinicalStudyView: React.FC = () => {
                     style={{ height: b.height }}
                   />
                 </div>
-                <span className="text-xs font-bold text-slate-700 font-mono">{b.arm}</span>
+                <span className="text-xs font-bold text-slate-700 font-mono">Arm {b.arm}</span>
               </div>
             ))}
           </div>
@@ -166,7 +229,7 @@ export const ClinicalStudyView: React.FC = () => {
         {/* Right: Preference Pie Chart (4 cols) */}
         <div className="lg:col-span-4 bg-white rounded-lg border border-slate-200/90 p-4 shadow-2xs space-y-3">
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-            PREFERENCE (MOST HELPFUL)
+            CLINICIAN PREFERENCE (MOST ACTIONABLE)
           </div>
 
           <div className="flex items-center justify-center space-x-4 h-44">
@@ -185,73 +248,187 @@ export const ClinicalStudyView: React.FC = () => {
             <div className="space-y-1.5 text-xs text-slate-700">
               <div className="flex items-center space-x-1.5 font-medium">
                 <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                <span>D: 48%</span>
+                <span>Arm D: 48%</span>
               </div>
               <div className="flex items-center space-x-1.5 font-medium">
                 <span className="w-2.5 h-2.5 rounded-full bg-cyan-500" />
-                <span>C: 31%</span>
+                <span>Arm C: 31%</span>
               </div>
               <div className="flex items-center space-x-1.5 font-medium">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                <span>B: 17%</span>
+                <span>Arm B: 17%</span>
               </div>
               <div className="flex items-center space-x-1.5 font-medium">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                <span>A: 4%</span>
+                <span>Arm A: 4%</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Bottom Section: Recent Responses (Arm D) Table */}
+      {/* Bottom Section: Recent Responses Table & Export Action */}
       <div className="bg-white rounded-lg border border-slate-200/90 shadow-2xs overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100">
+        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">
-            Recent Responses (Arm D)
+            Recent Clinician Responses (Arm D Evaluation)
           </h2>
+          <button
+            onClick={handleExportData}
+            className="text-xs bg-slate-900 hover:bg-black text-white font-semibold px-3 py-1.5 rounded shadow-2xs flex items-center space-x-1.5 transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Export Study Data (.CSV)</span>
+          </button>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-700">
             <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
               <tr>
-                <th className="py-2.5 px-3">Participant</th>
+                <th className="py-2.5 px-3">Participant ID</th>
                 <th className="py-2.5 px-3">Case ID</th>
                 <th className="py-2.5 px-3">Diagnosis Decision</th>
                 <th className="py-2.5 px-3">Confidence (1-5)</th>
-                <th className="py-2.5 px-3">Trust (1-5)</th>
-                <th className="py-2.5 px-3">Time (s)</th>
+                <th className="py-2.5 px-3">Explanation Trust (1-5)</th>
+                <th className="py-2.5 px-3">Decision Latency</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium text-xs font-mono">
-              {recentResponses.map((r) => (
-                <tr key={r.pId} className="hover:bg-slate-50/60">
+              {responses.map((r, idx) => (
+                <tr key={`${r.pId}-${idx}`} className="hover:bg-slate-50/60">
                   <td className="py-2.5 px-3 font-bold text-slate-800">{r.pId}</td>
                   <td className="py-2.5 px-3 font-bold text-blue-600">{r.caseId}</td>
                   <td className="py-2.5 px-3 font-sans font-semibold text-emerald-700">
                     {r.decision}
                   </td>
-                  <td className="py-2.5 px-3 font-bold text-slate-800">{r.confidence}</td>
-                  <td className="py-2.5 px-3 font-bold text-slate-800">{r.trust}</td>
+                  <td className="py-2.5 px-3 font-bold text-slate-800">{r.confidence} / 5</td>
+                  <td className="py-2.5 px-3 font-bold text-blue-600">{r.trust} / 5</td>
                   <td className="py-2.5 px-3 font-sans text-slate-600">{r.time}s</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-
-        {/* Bottom Bar with Export Button */}
-        <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-          <span className="text-[11px] text-slate-500">
-            Study in progress. Results are preliminary and for research use only.
-          </span>
-          <button className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3 py-1.5 rounded shadow-2xs flex items-center space-x-1.5">
-            <Download className="w-3.5 h-3.5" />
-            <span>Export Study Data</span>
-          </button>
-        </div>
       </div>
+
+      {/* Record Evaluation Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="bg-slate-900 text-white p-4 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Stethoscope className="w-4 h-4 text-blue-400" />
+                <h3 className="font-bold text-sm">Record Clinician Evaluation</h3>
+              </div>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-slate-400 hover:text-white text-xs font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-5 space-y-3.5 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Participant ID</label>
+                  <input
+                    type="text"
+                    value={participantId}
+                    onChange={(e) => setParticipantId(e.target.value)}
+                    className="w-full px-3 py-1.5 rounded border border-slate-200 font-mono text-slate-800 bg-slate-50"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Case ID</label>
+                  <select
+                    value={caseId}
+                    onChange={(e) => setCaseId(e.target.value)}
+                    className="w-full px-3 py-1.5 rounded border border-slate-200 font-mono text-slate-800 bg-slate-50"
+                  >
+                    <option value="TX-2048">TX-2048 (Pneumonia)</option>
+                    <option value="TX-2047">TX-2047 (Cardiomegaly)</option>
+                    <option value="TX-2049">TX-2049 (Pleural Effusion)</option>
+                    <option value="TX-3012">TX-3012 (Melanoma)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Diagnostic Accuracy Decision</label>
+                <select
+                  value={decision}
+                  onChange={(e) => setDecision(e.target.value)}
+                  className="w-full px-3 py-1.5 rounded border border-slate-200 text-slate-800 bg-slate-50"
+                >
+                  <option value="Correct">Correct (Pathology Verified)</option>
+                  <option value="Incorrect">Incorrect (False Positive / Negative)</option>
+                  <option value="Inconclusive">Inconclusive (Requires Biopsy)</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Confidence (1–5)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="5"
+                    value={confidence}
+                    onChange={(e) => setConfidence(parseInt(e.target.value) || 5)}
+                    className="w-full px-3 py-1.5 rounded border border-slate-200 font-mono text-slate-800 bg-slate-50"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Explanation Trust (1–5)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="5"
+                    value={trust}
+                    onChange={(e) => setTrust(parseInt(e.target.value) || 5)}
+                    className="w-full px-3 py-1.5 rounded border border-slate-200 font-mono text-slate-800 bg-slate-50"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Decision Latency (Seconds)</label>
+                <input
+                  type="number"
+                  min="5"
+                  max="120"
+                  value={latency}
+                  onChange={(e) => setLatency(parseInt(e.target.value) || 30)}
+                  className="w-full px-3 py-1.5 rounded border border-slate-200 font-mono text-slate-800 bg-slate-50"
+                />
+              </div>
+            </div>
+
+            <div className="p-3 bg-slate-50 border-t border-slate-200 flex justify-end space-x-2">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="px-3 py-1.5 rounded border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-100"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRecordResponse}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded shadow-2xs flex items-center space-x-1"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Submit Evaluation</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+export default ClinicalStudyView;

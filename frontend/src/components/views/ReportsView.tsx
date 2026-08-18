@@ -26,7 +26,20 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ currentCase }) => {
   };
 
   const handleDownloadCSV = () => {
-    window.open('/api/reports/csv', '_blank');
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      [
+        'Case_ID,Modality,Dataset,Model,Predicted_Label,Probability,Uncertainty_Score,Uncertainty_Level,XQI_Score,Reliability_Score,Reliability_Level,Overall_Agreement',
+        `"${currentCase.case_id}","${currentCase.modality}","${currentCase.dataset}","${currentCase.model_name}","${currentCase.prediction.label}",${(currentCase.prediction.probability * 100).toFixed(1)}%,${currentCase.uncertainty.score},"${currentCase.uncertainty.level}",${currentCase.xqi.overall},${currentCase.reliability.score},"${currentCase.reliability.level}",${currentCase.fusion.overall_agreement}%`
+      ].join('\n');
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `case_report_${currentCase.case_id}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handlePrint = () => {

@@ -119,6 +119,8 @@ export const AnalyzeCaseView: React.FC<AnalyzeCaseViewProps> = ({
             fusion={currentCase.fusion}
             groundTruthBbox={currentCase.ground_truth_bbox}
             groundTruthClass={currentCase.ground_truth_class}
+            activeOverlay={selectedOverlay as any}
+            onOverlayChange={(mode) => setSelectedOverlay(mode)}
           />
         </div>
 
